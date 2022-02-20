@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+if [ -z "$1" ]; then
+	echo "No program selected"
+	exit 1
+fi
+
+CC="gcc -g -std=c99 -pedantic -W -Wall -Werror -lm"
+INPUT="input"
+
+eval "$CC $1"
+eval "./a.out < $INPUT"

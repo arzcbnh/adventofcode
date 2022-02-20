@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+
+if [ "$2" = "-t" ]; then
+	INPUT="test"
+else
+	INPUT="input"
+fi
+
+gcc -g -std=c99 -pedantic -W -Wall -Werror -lm "$1" && {
+./a.out < "$INPUT" && {
+dd count=1 >/dev/null 2>&1
+
+if [ "$2" != "-t" ]; then
+	valgrind ./a.out < input
+fi
+}
+}
