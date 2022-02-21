@@ -1,175 +1,197 @@
 // Advent of Code 2021 - Day 09
 // Written by Henry Peaurt
 
+/* I'm quite proud of this one. I think I was able to divide functions really well, keeping them small and unique. I
+ * also used arrays and only now found out you don't need to declare the struct key for a typedef. I'm just not sure if
+ * using y before x in the array definition was a good idea, it caused some bugs that left me fumbling for an hour.
+ * I'll keep that in mind for my next n-dimensional arrays */
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <stdbool.h>
 
+#include "strmanip.h"
 
-// Constants
-#define NEWLINE '\n'
+// Types
+typedef struct {
+	int x;
+	int y;
+} point;
 
+typedef struct {
+	int map[100][100];
+	int size;
+
+	point **lowp;
+	int lowp_count;
+
+	point **measured;
+	int measured_count;
+
+	int largest[3];
+} context;
 
 // Function declarations
-void getHeightmap(void);
-void findLowPoints(void);
-void findLowPointNearWall(int i);
-int sumRiskLevel(void);
-int findBasins(int i);
-int checkIfMeasured(int i);
-void compareBasinSize(int size);
-int multiplyBasinSize(void);
-
-
-// Global variables
-int *heightmap, x, y;
-int *lowpoints, lowpoints_amount;
-int *basins, *measured_points, measured_amount;
-
+void get_map(context *c);
+_Bool check_lowpoint(context *c, int x, int y);
+void store_lowpoint(context *c, int x, int y);
+long calc_risk(context *c);
+int measure_basin(context *c, int x, int y);
+_Bool check_measured(context *c, int x, int y);
+void store_measured(context *c, int x, int y);
+void compare_basins(int largest[3], int size);
 
 int main(void)
 {
-	getHeightmap();
-	findLowPoints();
-	printf("Part 1: %d\n", sumRiskLevel());
+	context c = {
+		.map = { { 0, 0 } },
+		.size = 0,
 
-	basins = malloc(sizeof(int) * 3);
-	memset(basins, 0, sizeof(int) * 3);
-	for (int i = 0; i < lowpoints_amount; ++i) {
-		compareBasinSize(findBasins(lowpoints[i]));
-		measured_amount = 0;
+		.lowp = NULL,
+		.lowp_count = 0,
+
+		.measured = NULL,
+		.measured_count = 0,
+
+		.largest = { 0 }
+	};
+
+	get_map(&c);
+
+	for (int y = 0; y < c.size; ++y) {
+		for (int x = 0; x < c.size; ++x) {
+			if (check_lowpoint(&c, x, y))
+				store_lowpoint(&c, x, y);
+		}
 	}
-	printf("Part 2: %d\n", multiplyBasinSize());
+
+	printf("Part 1: %lu\n", calc_risk(&c));
+
+	for (int i = 0; i < c.lowp_count; ++i) {
+		int x = c.lowp[i]->x;
+		int y = c.lowp[i]->y;
+
+		compare_basins(c.largest, measure_basin(&c, x, y));
+	}
+
+	printf("Part 2: %lu\n", (unsigned long) (c.largest[0] * c.largest[1] * c.largest[2]));
+
 	return 0;
 }
 
-
-void getHeightmap(void)
+void get_map(context *c)
 {
-	char c;
-	int i = 0;
+	char *s = str_input();
+	int size = strlen(s);
+	int y = 0;
 	
-	while ((c = getchar()) != EOF) {
-		if (c == NEWLINE) {
-			x = i;
-			i = 0;
-			++y;
-			continue;
-		}
-		heightmap = realloc(heightmap, sizeof(int) * (y * x + i + 1));
-		heightmap[y * x + i++] = c - '0';
+	c->size = size;
+
+	do { 
+		for (int x = 0; x < size; ++x)
+			c->map[y][x] = s[x] - '0';
+
+		++y;
+		free(s);
+	} while ((s = str_input()));
+}
+
+_Bool check_lowpoint(context *c, int x, int y)
+{
+	int (*map)[100][100] = &(c->map);
+	int sz = c->size;
+	int p = (*map)[y][x];
+	_Bool up = true;
+	_Bool left = true;
+	_Bool down = true;
+	_Bool right = true;
+
+	if (y > 0) up = p < (*map)[y - 1][x];
+	if (x > 0) left = p < (*map)[y][x - 1];
+	if (y < sz - 1) down = p < (*map)[y + 1][x];
+	if (x < sz - 1) right = p < (*map)[y][x + 1];
+
+	return up && left && down && right;
+}
+
+void store_lowpoint(context *c, int x, int y)
+{
+	static int cap;
+
+	point *p = malloc(sizeof(point));
+	p->x = x;
+	p->y = y;
+
+	if (c->lowp_count == cap)
+		c->lowp = realloc(c->lowp, sizeof(point*) * (cap += 256));
+
+	c->lowp[c->lowp_count++] = p;
+}
+
+long calc_risk(context *c)
+{
+	long sum = 0;
+
+	for (int i = 0; i < c->lowp_count; ++i) {
+		int x = c->lowp[i]->x;
+		int y = c->lowp[i]->y;
+
+		sum += c->map[y][x] + 1;
 	}
-}
 
-
-void findLowPoints(void)
-{
-	for (int i = 0; i < x * y; ++i) {
-		if (i % x && (i - x + 1) % x && i - x >= 0 && i + x < x * y) {
-			if (heightmap[i - 1] > heightmap[i] &&
-			    heightmap[i + 1] > heightmap[i] &&
-			    heightmap[i - x] > heightmap[i] &&
-			    heightmap[i + x] > heightmap[i]) {
-				lowpoints = realloc(lowpoints, sizeof(int) *
-						    (lowpoints_amount + 1));
-				lowpoints[lowpoints_amount++] = i;
-			}
-		} else {
-			findLowPointNearWall(i);
-		}
-	}
-}
-
-
-void findLowPointNearWall(int i)
-{
-	struct {
-		unsigned int left : 1;
-		unsigned int right : 1;
-		unsigned int up : 1;
-		unsigned int down : 1;
-	} is_there;
-
-	is_there.left = !(!(i % x));
-	is_there.right = !(!((i - x + 1) % x));
-	is_there.up = i - x >= 0;
-	is_there.down = i + x < x * y;
-
-	if (is_there.left && heightmap[i - 1] <= heightmap[i])
-		return;
-	if (is_there.right && heightmap[i + 1] <= heightmap[i])
-		return;
-	if (is_there.up && heightmap[i - x] <= heightmap[i])
-		return;
-	if (is_there.down && heightmap[i + x] <= heightmap[i])
-		return;
-	lowpoints = realloc(lowpoints, sizeof(int) * (lowpoints_amount + 1));
-	lowpoints[lowpoints_amount++] = i;
-}
-
-
-int sumRiskLevel(void)
-{
-	int sum = 0;
-
-	for (int i = 0; i < lowpoints_amount; ++i)
-		sum += heightmap[lowpoints[i]] + 1;
 	return sum;
 }
 
-
-int findBasins(int i)
+int measure_basin(context *c, int x, int y)
 {
-	int size = 0;
+	int (*map)[100][100] = &(c->map);
+	int sz = c->size;
+	int p = (*map)[y][x];
+	int measure = 0;
 
-	if (heightmap[i] == 9 || checkIfMeasured(i))
+	if (p == 9 || check_measured(c, x, y))
 		return 0;
 
-	if (i % x && heightmap[i - 1] > heightmap[i])
-		size += findBasins(i - 1);			
-	if ((i - x + 1) % x && heightmap[i + 1] > heightmap[i])
-		size += findBasins(i + 1);
-	if (i - x >= 0 && heightmap[i - x] > heightmap[i])
-		size += findBasins(i - x);
-	if (i + x < x * y && heightmap[i + x] > heightmap[i])
-		size += findBasins(i + x);
-	return size + 1;
+	store_measured(c, x, y);
+
+	if (x > 0 && (*map)[y][x - 1] > p) measure += measure_basin(c, x - 1, y);			
+	if (y > 0 && (*map)[y - 1][x] > p) measure += measure_basin(c, x, y - 1);
+	if (x < sz - 1 && (*map)[y][x + 1] > p) measure += measure_basin(c, x + 1, y);
+	if (y < sz - 1 && (*map)[y + 1][x] > p) measure += measure_basin(c, x, y + 1);
+
+	return measure + 1;
 }
 
-
-int checkIfMeasured(int i)
+_Bool check_measured(context *c, int x, int y)
 {
-	for (int j = 0; j < measured_amount; ++j) {
-		if (measured_points[j] == i)
-			return 1;
+	for (int i = 0; i < c->measured_count; ++i) {
+		if (c->measured[i]->x == x && c->measured[i]->y == y)
+			return true;
 	}
-	measured_points = realloc(measured_points, sizeof(int) * 
-				  (measured_amount + 1));
-	measured_points[measured_amount++] = i;
-	return 0;
+
+	return false;
 }
 
+void store_measured(context *c, int x, int y)
+{
+	static int cap;
 
-void compareBasinSize(int size)
+	point *p = malloc(sizeof(point));
+	p->x = x;
+	p->y = y;
+
+	if (c->measured_count == cap)
+		c->measured = realloc(c->measured, sizeof(point*) * (cap += 256));
+
+	c->measured[c->measured_count++] = p;
+}
+
+void compare_basins(int largest[3], int size)
 {
 	int smallest;
-	smallest = basins[0] < basins[1] ? 0 : 1;
-	smallest = basins[smallest] < basins[2] ? smallest : 2;
+	smallest = largest[0] < largest[1] ? 0 : 1;
+	smallest = largest[smallest] < largest[2] ? smallest : 2;
 
-	for (int i = 0; i < 3; ++i) {
-		if (size > basins[smallest]) {
-			basins[smallest] = size;
-			return;
-		}
-	}
-}
-
-
-int multiplyBasinSize(void)
-{
-	int result = 1;
-
-	for (int i = 0; i < 3; result *= basins[i++])
-		;
-	return result;
+	if (size > largest[smallest])
+		largest[smallest] = size;
 }
