@@ -65,8 +65,6 @@ int main(void)
 		}
 	}
 
-	printf("Part 1: %lu\n", calc_risk(&c));
-
 	for (int i = 0; i < c.lowp_count; ++i) {
 		int x = c.lowp[i]->x;
 		int y = c.lowp[i]->y;
@@ -74,7 +72,15 @@ int main(void)
 		compare_basins(c.largest, measure_basin(&c, x, y));
 	}
 
+	printf("Part 1: %lu\n", calc_risk(&c));
 	printf("Part 2: %lu\n", (unsigned long) (c.largest[0] * c.largest[1] * c.largest[2]));
+
+	for (int i = 0; i < c.lowp_count; ++i)
+		free(c.lowp[i]);
+	free(c.lowp);
+	for (int i = 0; i < c.measured_count; ++i)
+		free(c.measured[i]);
+	free(c.measured);
 
 	return 0;
 }
@@ -84,14 +90,14 @@ void get_map(context *c)
 	char *s = str_input();
 	int size = strlen(s);
 	int y = 0;
-	
+
 	c->size = size;
 
 	do { 
 		for (int x = 0; x < size; ++x)
 			c->map[y][x] = s[x] - '0';
-
 		++y;
+
 		free(s);
 	} while ((s = str_input()));
 }
