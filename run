@@ -14,7 +14,7 @@ for arg in "$@"; do
 			INPUT="test"
 			;;
 		-v)
-			VALGRIND="valgrind -s --leak-check=full --track-origin=yes"
+			VALGRIND="valgrind -s --leak-check=full --track-origins=yes"
 			;;
 	esac
 done
