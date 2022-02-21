@@ -1,12 +1,31 @@
 #!/usr/bin/env sh
 
-if [ -z "$1" ]; then
+CC="gcc -g -std=c99 -pedantic -W -Wall -Werror -lm"
+PROGRAM=""
+INPUT="input"
+VALGRIND=""
+
+for arg in "$@"; do
+	case "$arg" in
+		*.c)
+			PROGRAM="$arg"
+			;;
+		-t)
+			INPUT="test"
+			;;
+		-v)
+			VALGRIND="valgrind --leack-check=full ./a.out <"
+			;;
+	esac
+done
+
+if [ -z PROGRAM ]; then
 	echo "No program selected"
 	exit 1
 fi
 
-CC="gcc -g -std=c99 -pedantic -W -Wall -Werror -lm"
-INPUT="input"
-
-eval "$CC $1"
-eval "./a.out < $INPUT"
+eval "$CC $PROGRAM" && eval "./a.out < $INPUT" && {
+	if [ -n "$VALGRIND" ]; then
+		eval "$VALGRIND $INPUT"
+	fi
+}
