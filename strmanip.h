@@ -110,19 +110,27 @@ char str_pop(char *s)
 
 char *str_input(void)
 {
+	char buffer[1024] = { 0 };
+	char *s = malloc(sizeof(char) * 1024);
 	unsigned long cap = 0;
-	char *s = NULL;
-
-	unsigned long i = 0;
+	unsigned int i = 0;
 	char c = '\0';
+
 	while ((c = getchar()) != '\n' && c != EOF) {
-		if (i == cap)
-			s = realloc(s, sizeof(char) * (cap += 100));
-		s[i++] = c;
+		buffer[i++] = c;
+		buffer[i] = '\0';
+
+		if (i == 1024) {
+			s = realloc(s, sizeof(char) * (cap += 1024));
+			for (unsigned int j = 0; j < i; ++j)
+				s[cap - i + j] = buffer[j];
+			i = 0;
+		}
 	}
 
-	if (i == cap)
-		s = realloc(s, cap += 1);
+	s = realloc(s, cap += ++i);
+	for (unsigned int j = 0; j < i; ++j)
+		s[cap - i + j] = buffer[j];
 	s[i] = '\0';
 
 	if (c == EOF) {
