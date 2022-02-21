@@ -137,7 +137,6 @@ char *str_input(void)
 
 	if (i) {
 		s = realloc(s, (cap += ++i));
-
 		for (unsigned int j = 0; j < i - 1; ++j)
 			s[cap - i + j] = buffer[j];
 	}

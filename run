@@ -14,7 +14,6 @@ for arg in "$@"; do
 			INPUT="test"
 			;;
 		-v)
-			VALGRIND="valgrind --leak-check=full ./a.out <"
 			;;
 	esac
 done
@@ -24,8 +23,7 @@ if [ -z PROGRAM ]; then
 	exit 1
 fi
 
-eval "$CC $PROGRAM" && eval "./a.out < $INPUT" && {
-	if [ -n "$VALGRIND" ]; then
-		eval "$VALGRIND $INPUT"
-	fi
-}
+eval "$CC $PROGRAM" &&
+	eval "./a.out < $INPUT" &&
+	head -n 1 > /dev/null &&
+	eval "valgrind --leak-check=full ./a.out < $INPUT"
