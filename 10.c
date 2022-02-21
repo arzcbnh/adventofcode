@@ -1,150 +1,155 @@
 // Advent of Code 2021 - Day 10
 // Written by Henry Peaurt
 
+/* This time, I decided to process each line. I think I'll start processing everything at once if it's needed, but line
+ * by line if it's possible to do so. I wonder if that's the reason the code turned out so ugly. I didn't use arrays
+ * since the line length varies. */
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <stdbool.h>
 
+#include "strmanip.h"
+
+// Types
+typedef struct {
+	long *list;
+	int count;
+	int cap;
+} missing;
+
+enum state {
+	CORRUPTED,
+	MISSING
+};
+
+typedef struct {
+	char *str;
+	enum state stt;
+} analysis;
 
 // Function declarations
-int getLineAlt(char **line);
-char findCorruptedPair(char **line, char **missing);
-int isOpening(char c);
-int isClosing(char c);
-int scoreCorruptedPair(char corrupted);
-int scoreMissing(char **missing, long **missing_scores, int score_amount);
-long findMiddleMissingScore(long **missing_scores, int score_amount);
-
+analysis proc_line(char *s);
+_Bool is_opening(char c);
+int ret_score(char c, enum state s);
+long calc_miss_score(char *s);
+void push_miss_score(missing *m, long n);
+int compare_scores(const void *a, const void *b);
 
 int main(void)
 {
-	char *line = NULL;
-	char *missing = NULL;
-	int corrupted_score = 0;
-	long *missing_scores = NULL, score_amount = 0;
+	missing m = {
+		.list = NULL,
+		.count = 0,
+		.cap = 0
+	};
+	char *s = NULL;
+	long score = 0;
 
-	while (getLineAlt(&line)) {
-		char corrupted = findCorruptedPair(&line, &missing);
-		corrupted_score += scoreCorruptedPair(corrupted);
-		if (!corrupted) {
-			score_amount = scoreMissing(&missing,
-					&missing_scores, score_amount);
+	while ((s = str_input())) {
+		analysis a = proc_line(s);
+
+		if (a.stt == CORRUPTED) {
+			score += ret_score(*a.str, CORRUPTED);
+			free(a.str);
+		} else {
+			push_miss_score(&m, calc_miss_score(a.str));
+			free(a.str);
 		}
+
+		free(s);
 	}
-	printf("Part 1: %d\n", corrupted_score);
-	printf("Part 2: %ld\n",findMiddleMissingScore(&missing_scores,
-						     score_amount));
-	free(line);
-	free(missing);
-	free(missing_scores);
+
+	qsort(m.list, m.count, sizeof(long long), compare_scores);
+
+	printf("Part 1: %lu\n", score);
+	printf("Part 2: %lu\n", m.list[m.count / 2]);
+
+	free(m.list);
+
 	return 0;
 }
 
-
-int getLineAlt(char **ptoline)
+analysis proc_line(char *s)
 {
-	int i;
-	char c;
+	char *missing = NULL;
+	char corrupt = '\0';
+	unsigned long len = strlen(s);
 
-	for (i = 0; (c = getchar()) != '\n' && c != EOF; ++i) {
-		*ptoline = realloc(*ptoline, sizeof(char) * (i + 2));
-		(*ptoline)[i] = c;
-	}
-	(*ptoline)[i] = '\0';
-	return i;
-}
+	for (unsigned int i = 0; i < len; ++i) {
+		char c = s[i];
 
-
-char findCorruptedPair(char **line, char **missing)
-{
-	int missing_amount = 0;
-	char c;
-
-	for (int position = 0; (c = (*line)[position]); ++position) {
-		if (isOpening(c)) {
-			*missing = realloc(*missing, sizeof(char) *
-					 (missing_amount + 1));
-			if (c == '(')
-				(*missing)[missing_amount++] = c + 1;
-			else
-				(*missing)[missing_amount++] = c + 2;
-		} else if (isClosing(c) && c != (*missing)[--missing_amount]) {
+		if (is_opening(c)) {
+			c += c == '(' ? 1 : 2; // Turns into the closing character
+			missing = str_push(missing, c);
+		} else if (c != str_pop(missing)) {
+			corrupt = c;
 			break;
 		}
 	}
-	(*missing)[missing_amount] = '\0';
-	return c;
+
+	char *copy = NULL;
+
+	if (corrupt) {
+		copy = malloc(sizeof(char) * 1);
+		*copy = corrupt;
+		free(missing);
+	} else
+		missing = str_push(missing, '\0');
+
+	analysis a = {
+		.str = corrupt ? copy : missing,
+		.stt = corrupt ? CORRUPTED : MISSING
+	};
+
+	return a;
 }
 		
-
-int isOpening(char c)
+_Bool is_opening(char c)
 {
 	return (c == '(' || c == '[' || c == '{' || c == '<');
 }
 
-
-int isClosing(char c)
+int ret_score(char c, enum state s)
 {
-	return (c == ')' || c == ']' || c == '}' || c == '>');
-}
-
-
-int scoreCorruptedPair(char corrupted)
-{
-	switch (corrupted) {
+	switch (c) {
 	case ')':
-		return 3;
+		return s == MISSING ? 1 : 3;
 	case ']':
-		return 57;
+		return s == MISSING ? 2 : 57;
 	case '}':
-		return 1197;
+		return s == MISSING ? 3 : 1197;
 	case '>':
-		return 25137;
+		return s == MISSING ? 4 : 25137;
 	}
+
 	return 0;
 }
 
-
-int scoreMissing(char **missing, long **missing_scores, int score_amount)
+long calc_miss_score(char *s)
 {
-	int missing_amount = strlen(*missing);
 	long score = 0;
 
-	while (missing_amount) {
+	for (unsigned long i = strlen(s); i; --i) {
 		score *= 5;
-		switch ((*missing)[--missing_amount]) {
-		case '>':
-			++score;
-		case '}':
-			++score;
-		case ']':
-			++score;
-		case ')':
-			++score;
-		}
+		score += ret_score(s[i - 1], MISSING);
 	}
-	*missing_scores = realloc(*missing_scores, sizeof(long) *
-				   (score_amount + 1));
-	(*missing_scores)[score_amount++] = score;
-	return score_amount;
+
+	return score;
 }
 
-
-long findMiddleMissingScore(long **missing_scores, int score_amount)
+void push_miss_score(missing *m, long n)
 {
-	int smaller, bigger;
-	int i, j;
+	if (m->count == m->cap)
+		m->list = realloc(m->list, sizeof(long) * (m->cap += 256));
 
-	for (i = 0; i < score_amount; ++i) {
-		smaller = bigger = 0;
-		for (j = 0; j < score_amount; ++j) {
-			if ((*missing_scores)[j] < (*missing_scores)[i])
-				++smaller;
-			else if ((*missing_scores)[j] > (*missing_scores)[i])
-				++bigger;
-		}
-		if (smaller == bigger)
-			break;
-	}
-	return (*missing_scores)[i];
+	m->list[m->count++] = n;
+}
+
+int compare_scores(const void *a, const void *b)
+{
+	long arg1 = *(const long*) a;
+	long arg2 = *(const long*) b;
+
+	return (arg1 > arg2) - (arg1 < arg2);
 }
