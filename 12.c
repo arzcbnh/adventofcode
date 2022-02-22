@@ -23,9 +23,6 @@ typedef struct cave {
 typedef struct {
 	cave **cave_list;
 	int cave_cnt;
-
-	cave **vstd_list;
-	int vstd_cnt;
 } cntxt;
 
 /* Function declarations */
@@ -41,8 +38,6 @@ main(void)
 	cntxt c = {
 		.cave_list = NULL,
 		.cave_cnt = 0,
-		.vstd_list = NULL,
-		.vstd_cnt = 0
 	};
 
 	input_caves(&c);
