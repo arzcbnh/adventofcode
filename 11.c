@@ -1,104 +1,124 @@
 // Advent of Code 2021 - Day 11
 // Written by Henry Peaurt
 
+/* Just found out about pattern matching, but I decided not to learn it right now. I tried doing that thing where you
+ * put spaces until every field of a statement is aligned, but I'm not sure if that was a good idea */
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <assert.h>
+#include <stdbool.h>
 
+#include "strmanip.h"
+#include "memmanage.h"
 
 // Constants
-#define FLASHED		-10
-#define LEFT		!(!(i % 10))
-#define RIGHT		!(!((i + 1) % 10))
-#define ABOVE		i - 10 >= 0
-#define BELOW		i + 10 < 100
-
+#define FLASHED	-10	// You can check which octopi flashed if they're below 0
+#define LEFT	x > 0
+#define RIGHT	x < 9
+#define ABOVE	y > 0
+#define BELOW	y < 9
 
 // Function declarations
-void getOctopuses(int *octopuses);
-void stepOctopuses(int *octopuses);
-void flashOctopuses(int *octopuses);
-int zeroOctopuses(int *octopuses);
-
+void get_octos   (int oct[10][10]);
+void step_octos  (int oct[10][10]);
+void flash_octos (int oct[10][10]);
+int  zero_octos  (int oct[10][10]);
 
 int main(void)
 {
-	int *octopuses = malloc(sizeof(int) * 100);
-	int *octopuses_backup = malloc(sizeof(int) * 100);
-	int flash_amount = 0;
-	int step;
+	int octos[10][10];
 
-	getOctopuses(octopuses);
-	memcpy(octopuses_backup, octopuses, sizeof(int) * 100);
-	for (step = 0; step < 100; ++step) {
-		stepOctopuses(octopuses);
-		flashOctopuses(octopuses);
-		flash_amount += zeroOctopuses(octopuses);
-	}
-	printf("Part One: %d\n", flash_amount);
+	get_octos(octos);
 
-	memcpy(octopuses, octopuses_backup, sizeof(int) * 100);
-	for (step = 0; flash_amount != 100; ++step) {
-		stepOctopuses(octopuses);
-		flashOctopuses(octopuses);
-		flash_amount = zeroOctopuses(octopuses);
+	int   step_cnt = 0;
+	int   flash_cnt = 0;
+	_Bool part1 = false;
+	_Bool part2 = false;
+
+	while (!part1 || !part2) {
+		step_octos(octos);
+		flash_octos(octos);
+
+		int tmp_cnt = zero_octos(octos);
+		flash_cnt += tmp_cnt;
+		++step_cnt;
+
+		if (step_cnt <= 3) {
+			for (int y = 0; y < 10; ++y) {
+				for (int x = 0; x < 10; ++x)
+					printf("%u ", octos[x][y]);
+				putchar('\n');
+			}
+			putchar('\n');
+			fflush(stdout);
+		}
+
+		if (step_cnt == 100) {
+			printf("Part One: %u\n", flash_cnt);
+			part1 = true;
+		}
+
+		if (tmp_cnt == 100) {
+			printf("Part Two: %u\n", step_cnt);
+			part2 = true;
+		}
 	}
-	printf("Part Two: %d\n", step);
 
 	return 0;
 }
 
-
-void getOctopuses(int *octopuses)
+void get_octos(int oct[10][10])
 {
-	char c;
+	for (int y = 0; y < 10; ++y) {
+		for (int x = 0; x < 10; ++x)
+			oct[x][y] = getchar() - '0';
 
-	for (int i = 0; (c = getchar()) != EOF; ++i) {
-		if (c == '\n') {
-			--i;
-			continue;
-		}
-		octopuses[i] = c - '0';
+		getchar(); // Skip newline
 	}
 }
 
-
-void stepOctopuses(int *octopuses)
+void step_octos(int oct[10][10])
 {
-	for (int i = 0; i < 100; ++i)
-		++octopuses[i];
+	for (int y = 0; y < 10; ++y) {
+		for (int x = 0; x < 10; ++x)
+			++oct[x][y];
+	}
 }
 
-
-void flashOctopuses(int *octopuses)
+void flash_octos(int oct[10][10])
 {
-	for (int i = 0; i < 100; ++i) {
-		if (octopuses[i] >= 10) {
-			octopuses[i] = FLASHED;
-			octopuses[i - 11] += LEFT && ABOVE;
-			octopuses[i - 10] += ABOVE;
-			octopuses[i - 9] += RIGHT && ABOVE;
-			octopuses[i - 1] += LEFT;
-			octopuses[i + 1] += RIGHT;
-			octopuses[i + 9] += LEFT && BELOW;
-			octopuses[i + 10] += BELOW;
-			octopuses[i + 11] += RIGHT && BELOW;
-			i = -1;
+rerun:
+	for (int y = 0; y < 10; ++y) {
+		for (int x = 0; x < 10; ++x) {
+			if (oct[x][y] >= 10) {
+				oct[x][y]	  = FLASHED;
+				oct[x][y - 1]	  += ABOVE;
+				oct[x - 1][y]	  += LEFT;
+				oct[x + 1][y]	  += RIGHT;
+				oct[x][y + 1]	  += BELOW;
+				oct[x - 1][y - 1] += LEFT && ABOVE;
+				oct[x + 1][y + 1] += RIGHT && ABOVE;
+				oct[x - 1][y + 1] += LEFT && BELOW;
+				oct[x + 1][y + 1] += RIGHT && BELOW;
+
+				goto rerun;
+			}
 		}
 	}
 }
 
-
-int zeroOctopuses(int *octopuses)
+int zero_octos(int oct[10][10])
 {
-	int flash_amount = 0;
+	int flash_cnt = 0;
 
-	for (int i = 0; i < 100; ++i) {
-		if (octopuses[i] < 0) {
-			octopuses[i] = 0;
-			++flash_amount;
+	for (int y = 0; y < 10; ++y) {
+		for (int x = 0; x < 10; ++x) {
+			if (oct[x][y] < 0) {
+				oct[x][y] = 0;
+				++flash_cnt;
+			}
 		}
 	}
-	return flash_amount;
+
+	return flash_cnt;
 }
