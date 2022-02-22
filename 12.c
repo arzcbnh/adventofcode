@@ -47,6 +47,8 @@ main(void)
 	printf("Part 1: %u\n", pathfind(start, 1, false));
 	printf("Part 2: %u\n", pathfind(start, 2, false));
 
+	mem_clean();
+
 	return 0;
 }
 
