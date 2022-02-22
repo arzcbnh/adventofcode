@@ -175,23 +175,23 @@ char *str_word(int n, char *s)
 
 	// Skip words until n
 	while (n--) {
-		while (!isspace(s[i]) && s[i]) // Doesn't skip if s[i] is null
+		while (isalnum(s[i]))
 			++i;
-		while (isspace(s[i]))
+		while (!isalnum(s[i]) && s[i] != '\0')
 			++i;
 	}
 
 	int len = 0;
 	int cap = 0;
 
-	while (!isspace(s[i]) && s[i]) {
+	while (isalnum(s[i]) && s[i] != '\0') {
 		if (len == cap)
 			w = mem_realloc(w, (cap += 20) * sizeof(char));
 
 		w[len++] = s[i++];
 	}
 
-	if (w) w[len] = '\0';
+	if (w != NULL) w[len] = '\0';
 	return w;
 }
 
