@@ -72,7 +72,7 @@ int main(void)
 
 analysis proc_line(char *s)
 {
-	char *missing = NULL;
+	char *queue = NULL;
 	char corrupt = '\0';
 	unsigned long len = strlen(s);
 
@@ -81,8 +81,8 @@ analysis proc_line(char *s)
 
 		if (is_opening(c)) {
 			c += c == '(' ? 1 : 2; // Turns into the closing character
-			missing = str_push(missing, c);
-		} else if (c != str_pop(missing)) {
+			queue = str_push(queue, c);
+		} else if (c != str_pop(queue)) {
 			corrupt = c;
 			break;
 		}
@@ -93,12 +93,12 @@ analysis proc_line(char *s)
 	if (corrupt) {
 		copy = malloc(sizeof(char) * 1);
 		*copy = corrupt;
-		free(missing);
+		free(queue);
 	} else
-		missing = str_push(missing, '\0');
+		queue = str_push(queue, '\0');
 
 	analysis a = {
-		.str = corrupt ? copy : missing,
+		.str = corrupt ? copy : queue,
 		.stt = corrupt ? CORRUPTED : MISSING
 	};
 
