@@ -1,197 +1,140 @@
-// Advent of Code 2021 - Day 12
-// Written by Henry Peaurt
+/* Advent of Code 2021 - Day 12 */
+/* Written by Henry Peaurt */
+
+/* The new version of this one turned out way better. Miles better. I'm also trying out a new style... */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <ctype.h>
 
+#include "strmanip.h"
+#include "memmanage.h"
 
-// Types
+/* Types */
 typedef struct cave {
 	char *name;
 	bool is_small;
-	struct cave **connections;
-	int connection_amount;
+	int visits;
+
+	struct cave **conn_list;
+	int conn_cnt;
 } cave;
 
+typedef struct {
+	cave **cave_list;
+	int cave_cnt;
 
-// Function declarations
-int getCaves(cave ***caves);
-int getCaveName(char **name);
-cave *createCaveStruct(cave ***caves, int *cave_amount, char *name);
-cave *checkExistingCaves(cave **caves, int cave_amount, char *name);
-int findOncePaths(cave *current, cave** visited_address, int visited_amount);
-int findTwicePaths(cave *current, cave** visited_address, int visited_amount,
-		   bool visited_twice);
-bool checkIfVisited(cave *current, cave **visited, int visited_amount);
+	cave **vstd_list;
+	int vstd_cnt;
+} cntxt;
 
+/* Function declarations */
+void input_caves(cntxt *c);
+cave* get_cave(cntxt *c, char *name);
+cave* alloc_cave(cntxt *c, char *name);
+void connect_caves(cave *a, cave *b);
+unsigned int pathfind(cave *curr, int max_vst, _Bool vstd_twice);
 
-int main(void)
+int
+main(void)
 {
-	cave **caves = NULL;
-	cave *start;
-	int cave_amount;
+	cntxt c = {
+		.cave_list = NULL,
+		.cave_cnt = 0,
+		.vstd_list = NULL,
+		.vstd_cnt = 0
+	};
 
-	cave_amount = getCaves(&caves);
-	start = checkExistingCaves(caves, cave_amount, "start");
-	printf("Part 1: %d\n", findOncePaths(start, NULL, 0));
-	printf("Part 2: %d\n", findTwicePaths(start, NULL, 0, false));
+	input_caves(&c);
 
-	for (int i = 0; i < cave_amount; ++i) {
-		free(caves[i]->name);
-		free(caves[i]->connections);
-		free(caves[i]);
-	}
-	free(caves);
+	cave *start = get_cave(&c, "start");
+
+	printf("Part 1: %u\n", pathfind(start, 1, false));
+
+	printf("Part 2: %u\n", pathfind(start, 2, false));
+
 	return 0;
 }
 
-
-int getCaves(cave ***caves)
+void
+input_caves(cntxt *c)
 {
-	cave *cave_a, *cave_b;
-	char *name_a, *name_b;
-	name_a = name_b = NULL;
-	int cave_amount = 0;
+	char *s = NULL;
 
-	while (getCaveName(&name_a)) {
-		getCaveName(&name_b);
+	while ((s = str_input()))
+	{
+		char *name_a = str_word(0, s);
+		char *name_b = str_word(1, s);
 
-		cave_a = createCaveStruct(caves, &cave_amount, name_a);
-		cave_b = createCaveStruct(caves, &cave_amount, name_b);
+		cave *a = get_cave(c, name_a);
+		if (a == NULL) a = alloc_cave(c, name_a);
 
-		cave_a->connections = realloc(cave_a->connections, sizeof(cave*)
-					     * (cave_a->connection_amount + 1));
-		cave_b->connections = realloc(cave_b->connections, sizeof(cave*)
-					     * (cave_b->connection_amount + 1));
+		cave *b = get_cave(c, name_b);
+		if (b == NULL) b = alloc_cave(c, name_b);
 
-		cave_a->connections[(cave_a->connection_amount)++] = cave_b;
-		cave_b->connections[(cave_b->connection_amount)++] = cave_a;
+		connect_caves(a, b);
 	}
-	free(name_a);
-	free(name_b);
-	return cave_amount;
 }
 
-
-int getCaveName(char **name)
+cave*
+get_cave(cntxt *c, char *name)
 {
-	int i;
-	char c;
-
-	for (i = 0; (c = getchar()) != '-' && c != '\n' && c != EOF; ++i) {
-		*name = realloc(*name, sizeof(char) * (i + 2));
-		(*name)[i] = c;
+	for (int i = 0; i < c->cave_cnt; ++i) {
+		if (strcmp(name, c->cave_list[i]->name) == 0)
+			return c->cave_list[i];
 	}
-	(*name)[i] = '\0';
-	return i;
-}
 
-
-cave *createCaveStruct(cave ***caves, int *cave_amount, char *name)
-{
-	cave *address = checkExistingCaves(*caves, *cave_amount, name);
-
-	if (!address) {
-		*caves = realloc(*caves, sizeof(cave*) * (*cave_amount + 1));
-		(*caves)[*cave_amount] = malloc(sizeof(cave));
-		address = (*caves)[(*cave_amount)++];
-		// Initialization of the struct
-		address->name = malloc(sizeof(char) * (strlen(name) + 1));
-		strcpy(address->name, name);
-		address->is_small = islower(name[0]);
-		address->connections = NULL;
-		address->connection_amount = 0;
-	}
-	return address;
-}
-
-
-cave *checkExistingCaves(cave **caves, int cave_amount, char *name)
-{
-	for (int i = 0; i < cave_amount; ++i) {
-		if (!(strcmp(caves[i]->name, name)))
-			return caves[i];
-	}
 	return NULL;
 }
 
-
-int findOncePaths(cave *current, cave** visited_address, int visited_amount)
+cave*
+alloc_cave(cntxt *c, char *name)
 {
-	int found_paths = 0;
-	cave** visited = malloc(sizeof(cave *) * visited_amount);
-	memcpy(visited, visited_address, sizeof(cave *) * visited_amount);
+	cave *p = mem_alloc(sizeof(cave));
+	p->name = name;
+	p->is_small = 'a' <= *name && *name <= 'z';
+	p->conn_list = NULL;
+	p->conn_cnt = 0;
 
-	if (!(strcmp(current->name, "end"))) {
-		free(visited);
-		return 1;
-	}
-	if (current->is_small) {
-		if (!(checkIfVisited(current, visited, visited_amount))) {
-			visited = realloc(visited, sizeof(cave*) *
-					  (visited_amount + 1));
-			visited[visited_amount++] = current;
-		} else {
-			free(visited);
-			return 0;
-		}
-	}
+	c->cave_list = mem_realloc(c->cave_list, (c->cave_cnt + 1) * sizeof(cave*));
+	c->cave_list[c->cave_cnt++] = p;
 
-	for (int i = 0; i < current->connection_amount; ++i) {
-		found_paths += findOncePaths(current->connections[i], visited,
-					     visited_amount);
-	}
-	free(visited);
-	return found_paths;
+	return p;
 }
 
-
-int findTwicePaths(cave *current, cave** visited_address, int visited_amount,
-		   bool visited_twice)
+void
+connect_caves(cave *a, cave *b)
 {
-	int found_paths = 0;
-	cave** visited = malloc(sizeof(cave *) * visited_amount);
-	memcpy(visited, visited_address, sizeof(cave *) * visited_amount);
+	a->conn_list = mem_realloc(a->conn_list, (a->conn_cnt + 1) * sizeof(cave*));
+	b->conn_list = mem_realloc(b->conn_list, (b->conn_cnt + 1) * sizeof(cave*));
 
-	if (!(strcmp(current->name, "end"))) {
-		free(visited);
-		return 1;
-	}
-	if (current->is_small) {
-		if (checkIfVisited(current, visited, visited_amount)) {
-			if (visited_twice || 
-			    (!(strcmp(current->name, "start")) &&
-			    visited_address)) {
-				free(visited);
-				return 0;
-			} else if (strcmp(current->name, "start")) {
-				visited_twice = checkIfVisited(current, visited,
-							       visited_amount);
-			}
-		} else {
-			visited = realloc(visited, sizeof(cave*) *
-					  (visited_amount + 1));
-			visited[visited_amount++] = current;
-		}
-	}
-
-	for (int i = 0; i < current->connection_amount; ++i) {
-		found_paths += findTwicePaths(current->connections[i], visited,
-					      visited_amount, visited_twice);
-	}
-	free(visited);
-	return found_paths;
+	a->conn_list[a->conn_cnt++] = b;
+	b->conn_list[b->conn_cnt++] = a;
 }
 
-
-bool checkIfVisited(cave *current, cave **visited, int visited_amount)
+unsigned int
+pathfind(cave *curr, int max_vst, _Bool vstd_twice)
 {
-	for (int i = 0; i < visited_amount; ++i) {
-		if (current == visited[i])
-			return true;
+	if (strcmp(curr->name, "end") == 0)
+		return 1;
+
+	if (
+		curr->is_small && curr->visits >= 1 &&
+		(strcmp(curr->name, "start") == 0 || max_vst == 1 || vstd_twice)
+	   )
+		return 0;
+
+	++curr->visits;
+	vstd_twice = vstd_twice || (curr->is_small && max_vst == 2 && curr->visits >= 2);
+
+	unsigned int found_paths = 0;
+
+	for (int i = 0; i < curr->conn_cnt; ++i) {
+		found_paths += pathfind(curr->conn_list[i], max_vst, vstd_twice);
 	}
-	return false;
+
+	--curr->visits; /* The number of visits doesn't increase past 2, so it subs 1 after the twice-visited cave is
+			 * processed and backtracks to tell the next paths the cave hasn't been visited twice */
+
+	return found_paths;
 }
