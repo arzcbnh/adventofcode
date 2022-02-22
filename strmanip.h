@@ -9,10 +9,12 @@
 #include <stdbool.h>
 #include <ctype.h>
 
+#include "memmanage.h"
+
 char *str_check(char *s)
 {
 	if (!s) {
-		s = calloc(1, 1);
+		s = mem_alloc(1);
 		*s = '\0';
 	}
 	return s;
@@ -25,7 +27,7 @@ char *str_insert(char *s1, char* s2, unsigned long p)
 
 	unsigned long len1 = strlen(s1);
 	unsigned long len2 = strlen(s2);
-	char *s_final = calloc(len1 + len2 + 1, sizeof(char));
+	char *s_final = mem_alloc(len1 + len2 + 1 * sizeof(char));
 
 	unsigned long i = 0;
 	unsigned long j = 0;
@@ -41,9 +43,6 @@ char *str_insert(char *s1, char* s2, unsigned long p)
 
 	while (j < len1)
 		s_final[i++] = s1[j++];
-
-	free(s1);
-	free(s2);
 
 	s_final[i] = '\0';
 	return s_final;
@@ -64,8 +63,8 @@ char *str_remove(char *s, unsigned long p1, unsigned long p2)
 	p1 = len ? p1 % len : 0;
 	p2 = len ? p2 % len : 0;
 
-	unsigned long size = len - (p1 - p2);
-	char *s_final = calloc(size, sizeof(char));
+	len -= p2 - p1;
+	char *s_final = mem_alloc((len + 1) * sizeof(char));
 
 	unsigned long i = 0;
 	unsigned long j = 0;
@@ -75,10 +74,8 @@ char *str_remove(char *s, unsigned long p1, unsigned long p2)
 
 	j = p2 + 1;
 
-	while (i < size)
+	while (i < len)
 		s_final[i++] = s[j++];
-
-	free(s);
 
 	s_final[i] = '\0';
 	return s_final;
@@ -92,7 +89,7 @@ char *str_append(char *s1, char *s2)
 
 char *str_push(char *s1, char c)
 {
-	char* s2 = calloc(2, sizeof(char));
+	char* s2 = mem_alloc(2 * sizeof(char));
 
 	s2[0] = c;
 	s2[1] = '\0';
@@ -125,7 +122,7 @@ char *str_input(void)
 		buffer[i] = '\0';
 
 		if (i == 1024) {
-			s = realloc(s, sizeof(char) * (cap += 1024));
+			s = mem_realloc(s, (cap += 1024) * sizeof(char));
 
 			for (unsigned int j = 0; j < i; ++j)
 				s[cap - i + j] = buffer[j];
@@ -160,15 +157,13 @@ unsigned int str_to_int_array(char *s, int **a)
 			storing_n = true;
 		} else if (storing_n) {
 			if (count == cap)
-				(*a) = realloc((*a), sizeof(int) * (cap += 100));
+				(*a) = mem_realloc((*a), (cap += 256) * sizeof(int));
 
 			(*a)[count++] = n;
 			n = 0;
 			storing_n = false;
 		}
 	}
-
-	free(s);
 
 	return count;
 }
@@ -191,13 +186,23 @@ char *str_word(int n, char *s)
 
 	while (!isspace(s[i]) && s[i]) {
 		if (len == cap)
-			w = realloc(w, sizeof(char) * (cap += 20));
+			w = mem_realloc(w, (cap += 20) * sizeof(char));
 
 		w[len++] = s[i++];
 	}
 
 	if (w) w[len] = '\0';
 	return w;
+}
+
+char *str_literal(char *str)
+{
+	size_t len = strlen(str);
+	char *new = mem_alloc((len + 1) * sizeof(char));
+
+	memcpy(new, str, len);
+
+	return new;
 }
 
 #endif
