@@ -4,9 +4,7 @@
 /* Just found out about pattern matching, but I decided not to learn it right now. Also, there's the new memory
  * management header, but I didn't need to allocate anything this time */
 
-#include <unistd.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdbool.h>
 
 // Constants
