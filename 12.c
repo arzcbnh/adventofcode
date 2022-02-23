@@ -4,7 +4,6 @@
 /* The new version of this one turned out way better. Miles better. I'm also trying out a new style... */
 
 #include <stdio.h>
-#include <string.h>
 #include <stdbool.h>
 
 #include "strmanip.h"
