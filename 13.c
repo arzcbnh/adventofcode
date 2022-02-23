@@ -1,25 +1,46 @@
-// Advent of Code 2021 - Day 13
-// Written by Henry Peaurt
+/* Advent of Code 2021 - Day 13 *
+ * Written by Henry Peaurt	*/
+
+/* I could've merged the input functions into one, but I thought it looked too complex so I kept them separate */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdbool.h>
-#include <ctype.h>
 
+#include "strmanip.h"
+#include "memmanage.h"
 
-// Types
-typedef struct point {
+/* Types */
+typedef struct {
 	int x;
 	int y;
 } point;
-typedef struct fold {
+
+typedef struct {
 	char axis;
 	int n;
-} fold;
+} order;
 
+typedef struct {
+	bool **paper;
+	int x;
+	int y;
 
-// Function declarations
+	point **pt_list;
+	int pt_cnt;
+
+	order **ord_list;
+	int ord_cnt;
+} cntxt;
+
+/* Function declarations */
+void input_points(cntxt *c);
+void input_orders(cntxt *c);
+void make_paper(cntxt *c);
+void fold_paper(cntxt *c, order *ord);
+void resize_paper(cntxt *c, order *ord);
+int count_dots(cntxt *c);
+void print_paper(cntxt *c);
+/*
 int createPoints(point ***points, int *x, int *y);
 int getCoordinate(point *coordinate);
 void copyDots(point **points, int point_amount, bool **dots, int x);
@@ -28,174 +49,171 @@ int getInstruction(fold *instruction);
 void foldPaper(bool **dots, int x, int y, char axis, int n);
 void resizePaper(bool **dots, int x, int y, char axis, int n);
 int countDots(bool *dots, int dot_amount);
+*/
 
-
-int main(void)
+int
+main(void)
 {
-	point **points = NULL;
-	int x = 0, y = 0;
-	int point_amount = createPoints(&points, &x, &y);
+	cntxt c = {
+		.paper = NULL,
+		.x = 0,
+		.y = 0,
+		.pt_list = 0,
+		.pt_cnt = 0,
+		.ord_list = NULL,
+		.ord_cnt = 0
+	};
 
-	bool *dots = calloc(++x * ++y, sizeof(bool));
-	copyDots(points, point_amount, &dots, x);
+	input_points(&c);
+	input_orders(&c);
+	make_paper(&c);
 
-	fold **folds = NULL;
-	int fold_amount = createFolds(&folds);
-	for (int i = 0; i < fold_amount; ++i) {
-		foldPaper(&dots, x, y, folds[i]->axis, folds[i]->n);
-		resizePaper(&dots, x, y, folds[i]->axis, folds[i]->n);
-		if (folds[i]->axis == 'x')
-			x -= x - folds[i]->n;
-		else
-			y -= y - folds[i]->n;
+	fold_paper(&c, c.ord_list[0]);
+	resize_paper(&c, c.ord_list[0]);
+	printf("Part 1: %u\n", count_dots(&c));
 
-		if (i == 0)
-			printf("Part 1: %d\n", countDots(dots, x * y));
+	for (int i = 1; i < c.ord_cnt; ++i) {
+		fold_paper(&c, c.ord_list[i]);
+		resize_paper(&c, c.ord_list[i]);
 	}
 
-	printf("Part 2:");
-	for (int i = 0; i < x * y; ++i) {
-		if (!(i % x))
-			putchar('\n');
-		if (dots[i])
-			putchar('#');
-		else
-			putchar('.');
-	}
-	putchar('\n');
+	printf("Part 2:\n");
+	print_paper(&c);
 
-	for (int i = 0; i < point_amount; ++i)
-		free(points[i]);
-	for (int i = 0; i < fold_amount; ++i)
-		free(folds[i]);
-	free(points);
-	free(folds);
-	free(dots);
+	mem_clean();
+
 	return 0;
 }
 
-
-int createPoints(point ***points, int *x, int *y)
+void
+input_points(cntxt *c)
 {
-	point coordinate;
-	int point_amount = 0;
-	
-	while (getCoordinate(&coordinate)) {
-		*points = realloc(*points, sizeof(point*) * (point_amount + 1));
-		(*points)[point_amount] = malloc(sizeof(point));
-		memcpy((*points)[point_amount++], &coordinate, sizeof(point));
-		
-		*x = coordinate.x > *x ? coordinate.x : *x;
-		*y = coordinate.y > *y ? coordinate.y : *y;
+	point **pts = NULL;
+	int cnt = 0;
+	int cap = 0;
+	char *s = NULL;
+
+	while ((s = str_input())) {
+		int p1 = atoi(str_word(0, s));
+		int p2 = atoi(str_word(1, s));
+
+		if (cnt == cap)
+			pts = mem_realloc(pts, (cap += 100) * sizeof(point*));
+
+		point *p = mem_alloc(sizeof(point));
+		p->x = p1;
+		p->y = p2;
+
+		c->x = c->x > p->x ? c->x : p->x;
+		c->y = c->y > p->y ? c->y : p->y;
+
+		pts[cnt++] = p;
 	}
-	return point_amount;
+
+	c->pt_list = pts;
+	c->pt_cnt = cnt;
+	++c->x;
+	++c->y;
 }
 
-
-int getCoordinate(point *coordinate)
+void
+input_orders(cntxt *c)
 {
-	char c;
+	order **ords = NULL;
+	int cnt = 0;
+	int cap = 0;
+	char *s = NULL;
 
-	coordinate->x = coordinate->y = 0;
-	while ((c = getchar()) != ',') {
-		if (c == '\n')
-			return 0;
-		coordinate->x = coordinate->x * 10 + c - '0';
+	while ((s = str_input())) {
+		char axis = str_word(2, s)[0];
+		int n = atoi(str_word(3, s));
+
+		if (cnt == cap)
+			ords = mem_realloc(ords, (cap += 100) * sizeof(order*));
+
+		order *o = mem_alloc(sizeof(order));
+		o->axis = axis;
+		o->n = n;
+
+		ords[cnt++] = o;
 	}
-	while ((c = getchar()) != '\n')
-		coordinate->y = coordinate->y * 10 + c - '0';
-	return 1;
+
+	c->ord_list = ords;
+	c->ord_cnt = cnt;
 }
 
-
-void copyDots(point **points, int point_amount, bool **dots, int x)
+void
+make_paper(cntxt *c)
 {
-	for (int i = 0; i < point_amount; ++i) {
-		int pt_x = points[i]->x;
-		int pt_y = points[i]->y;
-		(*dots)[pt_y * x + pt_x] = true;
+	bool **paper = mem_alloc(c->x * sizeof(bool*));
+
+	for (int x = 0; x < c->x; ++x)
+		paper[x] = mem_alloc(c->y * sizeof(bool));
+
+	for (int i = 0; i < c->pt_cnt; ++i) {
+		int x = c->pt_list[i]->x;
+		int y = c->pt_list[i]->y;
+
+		(paper[x])[y] = true;
 	}
+
+	c->paper = paper;
 }
 
-
-int createFolds(fold ***folds)
+void
+fold_paper(cntxt *c, order *ord)
 {
-	fold instruction;
-	int fold_amount = 0;
+	bool **paper = c->paper;
+	char axis = ord->axis;
+	int n = ord->n;
 
-	while (getInstruction(&instruction)) {
-		*folds = realloc(*folds, sizeof(fold*) * (fold_amount + 1));
-		(*folds)[fold_amount] = malloc(sizeof(fold));
-		memcpy((*folds)[fold_amount++], &instruction, sizeof(fold));
-	}
-	return fold_amount;
-}
+	for (int y = 0; y < c->y; ++y) {
+		for (int x = 0; x < c->x; ++x) {
+			bool oppst = false;
 
+			if (x < n && axis == 'x')
+				oppst = (paper[n + n - x])[y];
+			else if (y < n && axis == 'y')
+				oppst = (paper[x])[n + n - y];
+			else
+				break;
 
-int getInstruction(fold *instruction)
-{
-	char c;
-
-	while ((c = getchar()) != 'x' && c != 'y') {
-		if (c == EOF)
-			return 0;
-	}
-	instruction->axis = c == 'x' ? 'x' : 'y';
-	getchar();
-	instruction->n = 0;
-	while (isdigit(c = getchar()))
-		instruction->n = instruction->n * 10 + c - '0';
-	return 1;
-}
-
-
-void foldPaper(bool **dots, int x, int y, char axis, int n)
-{
-	int dot_amount = x * y;
-
-	for (int j = 0; j < dot_amount; ++j) {
-		int line = j / x;
-		int column = j % x;
-		int n_2 = n + n;
-		if (axis == 'x' && column < n) {
-			bool *opposite = &(*dots)[(n_2 - column) + line * x];
-			(*dots)[j] |= *opposite;
-			*opposite = false;
-		} else if (axis == 'y' && line < n) {
-			bool *opposite = &(*dots)[(n_2 - line) * x + column];
-			(*dots)[j] |= *opposite;
-			*opposite = false;
+			(paper[x])[y] |= oppst;
 		}
 	}
 }
 
-
-void resizePaper(bool **dots, int x, int y, char axis, int n)
+void
+resize_paper(cntxt *c, order *ord)
 {
-	int dot_amount = x * y;
-	int a, b;
-
-	if (axis == 'x') {
-		int position = 0;
-		for (int i = 0; i < dot_amount; ++i) {
-			if (i % x < n)
-				(*dots)[position++] = (*dots)[i];
-		}
-		a = x;
-		b = y;
+	if (ord->axis == 'x') {
+		c->x -= ord->n + 1;
 	} else {
-		a = y;
-		b = x;
+		c->y -= ord->n + 1;
 	}
-	*dots = realloc(*dots, sizeof(bool) * (dot_amount - (a - n) * b));
 }
 
-
-int countDots(bool *dots, int dot_amount)
+int
+count_dots(cntxt *c)
 {
-	int true_dots = 0;
+	int cnt = 0;
 
-	for (int i = 0; i < dot_amount; ++i)
-		true_dots += dots[i];
-	return true_dots;
+	for (int y = 0; y < c->y; ++y) {
+		for (int x = 0; x < c->x; ++x)
+			cnt += (c->paper[x])[y];
+	}
+
+	return cnt;
+}
+
+void
+print_paper(cntxt *c)
+{
+	for (int y = 0; y < c->y; ++y) {
+		for (int x = 0; x < c->x; ++x) {
+			putchar((c->paper[x])[y] ? '#' : '.');
+		}
+
+	putchar('\n');
+	}
 }
