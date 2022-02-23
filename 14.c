@@ -38,7 +38,6 @@ void input_rules(cntxt *c);
 void read_polymer(cntxt *c, char *polymer);
 rule* get_rule(cntxt *c, char pair[2]);
 void step_polymer(cntxt *c);
-void assign_steps(cntxt *c);
 void record_atoms(cntxt *c);
 atom* get_atom(cntxt *c, char name);
 void alloc_atom(cntxt *c, char name);
@@ -68,7 +67,6 @@ main(void)
 		}
 
 		step_polymer(&c);
-		assign_steps(&c);
 	}
 
 	calc_atoms(&c);
@@ -135,26 +133,20 @@ step_polymer(cntxt *c)
 	rule **list = c->rule_list;
 
 	for (int i = 0; i < c->rule_cnt; ++i) {
-		rule *p = list[i];
-		rule *r = NULL;
+		rule *r = list[i];
+		rule *p = NULL;
 		char result[2] = { 0 };
 
-		result[0] = p->pair[0];
-		result[1] = p->result;
-		r = get_rule(c, result);
-		r->new_cnt += p->old_cnt;
+		result[0] = r->pair[0];
+		result[1] = r->result;
+		p = get_rule(c, result);
+		p->new_cnt += r->old_cnt;
 
-		result[0] = p->result;
-		result[1] = p->pair[1];
-		r = get_rule(c, result);
-		r->new_cnt += p->old_cnt;
+		result[0] = r->result;
+		result[1] = r->pair[1];
+		p = get_rule(c, result);
+		p->new_cnt += r->old_cnt;
 	}
-}
-
-void
-assign_steps(cntxt *c)
-{
-	rule **list = c->rule_list;
 
 	for (int i = 0; i < c->rule_cnt; ++i) {
 		rule *p = list[i];
@@ -167,11 +159,11 @@ void
 record_atoms(cntxt *c)
 {
 	for (int i = 0; i < c->rule_cnt; ++i) {
-		rule *p = c->rule_list[i];
+		rule *r = c->rule_list[i];
 
 		for (int j = 0; j < 2; ++j) {
-			if (get_atom(c, p->pair[j]) == NULL)
-				alloc_atom(c, p->pair[j]);
+			if (get_atom(c, r->pair[j]) == NULL)
+				alloc_atom(c, r->pair[j]);
 		}
 	}
 }
@@ -206,14 +198,14 @@ void
 calc_atoms(cntxt *c)
 {
 	for (int i = 0; i < c->rule_cnt; ++i) {
-		rule *p = c->rule_list[i];
+		rule *r = c->rule_list[i];
 		atom *a = NULL;
 
-		a = get_atom(c, p->pair[0]);
-		a->cnt += p->old_cnt;
+		a = get_atom(c, r->pair[0]);
+		a->cnt += r->old_cnt;
 
-		a = get_atom(c, p->pair[1]);
-		a->cnt += p->old_cnt;
+		a = get_atom(c, r->pair[1]);
+		a->cnt += r->old_cnt;
 	}
 
 	for (int i = 0; i < c->atom_cnt; ++i) {
