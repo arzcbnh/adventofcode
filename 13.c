@@ -40,16 +40,6 @@ void fold_paper(cntxt *c, order *ord);
 void resize_paper(cntxt *c, order *ord);
 int count_dots(cntxt *c);
 void print_paper(cntxt *c);
-/*
-int createPoints(point ***points, int *x, int *y);
-int getCoordinate(point *coordinate);
-void copyDots(point **points, int point_amount, bool **dots, int x);
-int createFolds(fold ***folds);
-int getInstruction(fold *instruction);
-void foldPaper(bool **dots, int x, int y, char axis, int n);
-void resizePaper(bool **dots, int x, int y, char axis, int n);
-int countDots(bool *dots, int dot_amount);
-*/
 
 int
 main(void)
