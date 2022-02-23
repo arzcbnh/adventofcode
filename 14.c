@@ -1,178 +1,244 @@
-// Advent of Code 2021 - Day 14
-// Written by Henry Peaurt
+/* Advent of Code 2021 - Day 14 *
+ * Written by Henry Peaurt	*/
+
+/* Not sure if it was a good idea to typedef the struct as "rule" and name the variables as "rule", but shortening   *
+ * to "r" seemed worse. I'm trying to break down functions and keep them from "nesting" more.			     */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <limits.h>
 
+#include "strmanip.h"
+#include "memmanage.h"
 
-//Types
-typedef struct rule {
-	char name[3];
-	char result_a[3];
-	char result_b[3];
-	long count;
+/* Types */
+typedef struct{
+	char pair[2];
+	char result;
+	long old_cnt;
+	long new_cnt;
 } rule;
-typedef struct frequence {
+
+typedef struct {
 	char name;
-	long count;
-} frequence;
+	long cnt;
+} atom;
 
+typedef struct {
+	rule **rule_list;
+	int rule_cnt;
 
-// Function declarations
-int getRules(rule ***rules);
-rule *findRuleStruct(char *name, rule ***rules, int *rule_amount);
-void stepPolymer(rule **rules, int rule_amount);
-long subMostLessCommon(rule **rules, int rule_amount);
-frequence *findAtomStruct(char name, frequence ***atoms, int *atom_amount);
+	char edge[2];
 
-// Inline functions
-static inline void skipNewline(void) {
-	getchar();
-}
-static inline void skipArrow(void) {
-	getchar(); getchar(); getchar(); getchar();
-}
+	atom **atom_list;
+	int atom_cnt;
+} cntxt;
 
+/* Function declarations */
+void input_rules(cntxt *c);
+void read_polymer(cntxt *c, char *polymer);
+rule* get_rule(cntxt *c, char pair[2]);
+void step_polymer(cntxt *c);
+void assign_steps(cntxt *c);
+void record_atoms(cntxt *c);
+atom* get_atom(cntxt *c, char name);
+void alloc_atom(cntxt *c, char name);
+void calc_atoms(cntxt *c);
+long sub_more_less_common(cntxt *c);
 
-int main(void)
+int
+main(void)
 {
-	rule **rules = NULL;
-	int rule_amount = getRules(&rules);
-	
-	for (int i = 0; i < 40; ++i) {
-		if (i == 10)
-			printf("Part 1: %ld\n", subMostLessCommon(rules,
-								 rule_amount));
-		stepPolymer(rules, rule_amount);
-	}
-	printf("Part 2: %ld\n", subMostLessCommon(rules, rule_amount));
+	cntxt c = {
+		.rule_list = NULL,
+		.rule_cnt = 0,
+		.edge = { 0 },
+		.atom_list = NULL,
+		.atom_cnt = 0
+	};
+	char *polymer = str_input();
 
-	for (int i = 0; i < rule_amount; ++i)
-		free(rules[i]);
-	free(rules);
+	input_rules(&c);
+	read_polymer(&c, polymer);
+	record_atoms(&c);
+
+	for (int i = 0; i < 40; ++i) {
+		if (i == 10) {
+			calc_atoms(&c);
+			printf("Part 1: %lu\n", sub_more_less_common(&c));
+		}
+
+		step_polymer(&c);
+		assign_steps(&c);
+	}
+
+	calc_atoms(&c);
+	printf("Part 2: %lu\n", sub_more_less_common(&c));
+
+	mem_clean();
+
 	return 0;
 }
 
-
-int getRules(rule ***rules)
+void
+input_rules(cntxt *c)
 {
-	int rule_amount = 0;
-	char name[3];
-	rule *holder;
+	char *s = str_input(); /* Skip newline after the polymer */
+	int cap = 0;
 
-	name[2] = '\0';
-	name[0] = getchar();
-	while ((name[1] = getchar()) != '\n') {
-		holder = findRuleStruct(name, rules, &rule_amount);
-		holder->count++;
-		name[0] = name[1];
-	}
-	skipNewline();
+	while ((s = str_input())) {
+		if (c->rule_cnt == cap)
+			c->rule_list = mem_realloc(c->rule_list, (cap += 128) * sizeof(rule*));
 
-	while ((name[0] = getchar()) != EOF) {
-		name[1] = getchar();
-		skipArrow();
-		holder = findRuleStruct(name, rules, &rule_amount);
-		char c = getchar();
-		holder->result_a[0] = name[0];
-		holder->result_a[1] = holder->result_b[0] = c;
-		holder->result_b[1] = name[1];
-		skipNewline();
+		rule *r = mem_alloc(sizeof(rule));
+		r->pair[0] = s[0];
+		r->pair[1] = s[1];
+		r->result = s[6];
+		r->old_cnt = 0;
+		r->new_cnt = 0;
+
+		c->rule_list[c->rule_cnt++] = r;
 	}
-	return rule_amount;
 }
 
-
-rule *findRuleStruct(char *name, rule ***rules, int *rule_amount)
+void
+read_polymer(cntxt *c, char *polymer)
 {
-	int i;
+	size_t len = strlen(polymer) - 1; /* More like the index rather than the length */
 
-	for (i = 0; i < *rule_amount; ++i) {
-		if (!strcmp(name, (*rules)[i]->name))
-			return (*rules)[i];
+	for (size_t i = 0; i < len; ++i) {
+		char pair[2] = { polymer[i], polymer[i + 1] };
+		rule *r = get_rule(c, pair);
+
+		++r->old_cnt;
 	}
-	*rules = realloc(*rules, sizeof(rule*) * (i + 1));
-	(*rules)[i] = calloc(1, sizeof(rule));
-	strcpy((*rules)[i]->name, name);
-	(*rules)[i]->count = 0;
-	(*rule_amount)++;
-	return (*rules)[i];
+
+	c->edge[0] = polymer[0];
+	c->edge[1] = polymer[len];
 }
 
-
-void stepPolymer(rule **rules, int rule_amount)
+rule*
+get_rule(cntxt *c, char pair[2])
 {
-	rule *holder = NULL, **holders = NULL;
-	int holder_amount = 0;
+	for (int i = 0; i < c->rule_cnt; ++i) {
+		char *l_pair = c->rule_list[i]->pair;
 
-	for (int i = 0; i < rule_amount; ++i) {
-		if (rules[i]->count) {
-		holder = findRuleStruct(rules[i]->result_a, &holders,
-					&holder_amount);
-		holder->count += rules[i]->count;
-		holder = findRuleStruct(rules[i]->result_b, &holders,
-					&holder_amount);
-		holder->count += rules[i]->count;
-		rules[i]->count = 0;
+		if (pair[0] == l_pair[0] && pair[1] == l_pair[1])
+			return c->rule_list[i];
+	}
+
+	return NULL;
+}
+
+void
+step_polymer(cntxt *c)
+{
+	rule **list = c->rule_list;
+
+	for (int i = 0; i < c->rule_cnt; ++i) {
+		rule *p = list[i];
+		rule *r = NULL;
+		char result[2] = { 0 };
+
+		result[0] = p->pair[0];
+		result[1] = p->result;
+		r = get_rule(c, result);
+		r->new_cnt += p->old_cnt;
+
+		result[0] = p->result;
+		result[1] = p->pair[1];
+		r = get_rule(c, result);
+		r->new_cnt += p->old_cnt;
+	}
+}
+
+void
+assign_steps(cntxt *c)
+{
+	rule **list = c->rule_list;
+
+	for (int i = 0; i < c->rule_cnt; ++i) {
+		rule *p = list[i];
+		p->old_cnt = p->new_cnt;
+		p->new_cnt = 0;
+	}
+}
+
+void
+record_atoms(cntxt *c)
+{
+	for (int i = 0; i < c->rule_cnt; ++i) {
+		rule *p = c->rule_list[i];
+
+		for (int j = 0; j < 2; ++j) {
+			if (get_atom(c, p->pair[j]) == NULL)
+				alloc_atom(c, p->pair[j]);
 		}
 	}
-	// You can't remove the amount of stepped pairs before all steppings are
-	// processed, since all atoms are inserted at the same time
-	for (int i = 0; i < holder_amount; ++i) {
-		holder = findRuleStruct(holders[i]->name, &rules,
-					&rule_amount);
-		holder->count = holders[i]->count;
-	}
-
-	for (int i = 0; i < holder_amount; ++i)
-		free(holders[i]);
-	free(holders);
 }
 
-
-long subMostLessCommon(rule **rules, int rule_amount)
+atom*
+get_atom(cntxt *c, char name)
 {
-	frequence *atom = NULL, **atoms = NULL;
-	int atom_amount = 0;
-
-	for (int i = 0; i < rule_amount; ++i) {
-		atom = findAtomStruct(rules[i]->name[0], &atoms, &atom_amount);
-		atom->count += rules[i]->count;
-		atom = findAtomStruct(rules[i]->name[1], &atoms, &atom_amount);
-		atom->count += rules[i]->count;
+	for (int i = 0; i < c->atom_cnt; ++i) {
+		if (name == c->atom_list[i]->name)
+			return c->atom_list[i];
 	}
 
-	long most = 0;
-	long less = LONG_MAX;
-
-	for (int i = 0; i < atom_amount; ++i) {
-		atom = atoms[i];
-		atom->count = (atom->count + 1) / 2;
-		most = atom->count > most ? atom->count : most;
-		less = atom->count < less ? atom->count : less;
-	}
-
-	for (int i = 0; i < atom_amount; ++i)
-		free(atoms[i]);
-	free(atoms);
-	return most - less;
+	return NULL;
 }
 
-
-frequence *findAtomStruct(char name, frequence ***atoms, int *atom_amount)
+void
+alloc_atom(cntxt *c, char name)
 {
-	int i;
+	static int cap;
 
-	for (i = 0; i < *atom_amount; ++i) {
-		if (name == (*atoms)[i]->name)
-			return (*atoms)[i];
+	if (c->atom_cnt == cap)
+		c->atom_list = mem_realloc(c->atom_list, (cap += 64) * sizeof(atom*));
+
+	atom *a = mem_alloc(sizeof(atom));
+	a->name = name;
+	a->cnt = 0;
+
+	c->atom_list[c->atom_cnt++] = a;
+}
+
+void
+calc_atoms(cntxt *c)
+{
+	for (int i = 0; i < c->rule_cnt; ++i) {
+		rule *p = c->rule_list[i];
+		atom *a = NULL;
+
+		a = get_atom(c, p->pair[0]);
+		a->cnt += p->old_cnt;
+
+		a = get_atom(c, p->pair[1]);
+		a->cnt += p->old_cnt;
 	}
-	*atoms = realloc(*atoms, sizeof(frequence*) * (i + 1));
-	(*atoms)[i] = malloc(sizeof(frequence));
-	(*atoms)[i]->name = name;
-	(*atoms)[i]->count = 0;
-	(*atom_amount)++;
-	return (*atoms)[i];
+
+	for (int i = 0; i < c->atom_cnt; ++i) {
+		atom *a = c->atom_list[i];
+		a->cnt /= 2;
+
+		if (a->name == c->edge[0] || a->name == c->edge[1])
+			++a->cnt;
+	}
+}
+
+long
+sub_more_less_common(cntxt *c)
+{
+	long less = c->atom_list[0]->cnt;
+	long more = c->atom_list[0]->cnt;
+
+	for (int i = 1; i < c->atom_cnt; ++i) {
+		long cnt = c->atom_list[i]->cnt;
+
+		less = less < cnt ? less : cnt;
+		more = more > cnt ? more : cnt;
+
+		c->atom_list[i]->cnt = 0; /* This is so the atoms can be recounted later */
+	}
+
+	return more - less;
 }
