@@ -3,108 +3,220 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdbool.h>
+
+#include "strmanip.h"
+#include "memmanage.h"
 
 /* Types */
 typedef struct {
-	int visits;
+	int x;
+	int y;
+	int risk;
+	int total_risk;
+	bool visited;
 } node;
 
 typedef struct {
+	node map[500][500];
+	int size; /* The only purpose of this variable is so the program works with the test */
+} cntxt;
 
 /* Function declarations */
-static void getGrid(void);
+void input_map(cntxt* c);
+void expand_map(cntxt* c);
+void copy_right(cntxt* c, int x, int y);
+void copy_down(cntxt* c, int new_x, int y);
+void init_nodes(cntxt* c);
+void pathfind(cntxt* c);
+node* get_shortest(cntxt* c);
 
 int
 main(void)
 {
-	getGrid();
+	cntxt c = {
+		.map = {{{ 0 }}},
+		.size = 0
+	};
 
-	path safest = findPath();
+	input_map(&c);
+	expand_map(&c);
+	init_nodes(&c);
+	pathfind(&c);
+
+	node *n = get_shortest(&c);
+
+	printf("Part 1: %i\n", n->total_risk);
+	
+	c.size *= 5;
+	init_nodes(&c);
+	pathfind(&c);
+
+	n = get_shortest(&c);
+
+	printf("Part 2: %i\n", n->total_risk);
+
+	/*
+	for (int y = 0; y < c.size; ++y) {
+		for (int x = 0; x < c.size; ++x)
+			printf("%i", c.map[x][y].risk);
+
+		putchar('\n');
+	}
+	putchar('\n');
+	for (int y = 0; y < c.size; ++y) {
+		for (int x = 0; x < c.size; ++x)
+			printf("%i", c.map[x][y].visited);
+
+		putchar('\n');
+	}
+	putchar('\n');
+	for (int y = 0; y < c.size; ++y) {
+		for (int x = 0; x < c.size; ++x)
+			printf("%i", c.map[x][y].total_risk);
+
+		putchar('\n');
+	}
+	putchar('\n');
+	*/
 
 	return 0;
 }
 
-
-static void getGrid(void)
+void
+input_map(cntxt* c)
 {
-	char c;
+	char* s = str_input();
+	size_t len = strlen(s);
+	int y = 0;
 
-	for (int i = 0; (c = getchar()) != EOF; ++i) {
-		if (c == '\n') {
-			x = i - 1;
-			i = -1;
-			++y;
-			continue;
+	while (s != NULL) {
+		for (size_t x = 0; x < len; x++)
+			c->map[x][y].risk = s[x] - '0';
+
+		y++;
+		s = str_input();
+	}
+
+	c->size = (int) len;
+}
+
+void
+expand_map(cntxt* c)
+{
+	/* Some confusing math goes on with this function. It copies (x, y) to the the first line of the grid of the *
+	 * expanded map. So (0x, 0y) is copied to itself, then (1x, 0y), then (2x, 0y)... For every copy in the      *
+	 * line, it also copies for the entire column. So after (0x, 0y) is copied to itself, it actually copies to  *
+	 * (0x, 1y), then (0x, 2y)... Only after the entire column is complete, it continues completing the line to  *
+	 * (1x, 0y). The new risk level is always being calculated as the challenge asked (wrap around level 9).     *
+	 * Every iteration is very similar so I chose to abstract them behind functions, although it's still complex */
+
+	for (int y = 0; y < c->size; y++) {
+		for (int x = 0; x < c->size; x++)
+			copy_right(c, x, y);
+	}
+}
+
+void
+copy_right(cntxt* c, int x, int y)
+{
+	int risk = c->map[x][y].risk;
+
+	for (int i = 0; i < 5; i++) {
+		int new_x = x + c->size * i;
+
+		c->map[new_x][y].risk = risk;
+		copy_down(c, new_x, y);
+
+		risk++;
+		risk = risk == 10 ? 1 : risk;
+	}
+}
+
+void
+copy_down(cntxt* c, int new_x, int y)
+{
+	int risk = c->map[new_x][y].risk;
+
+	for (int i = 0; i < 5; i++) {
+		int new_y = y + c->size * i;
+
+		c->map[new_x][new_y].risk = risk;
+
+		risk++;
+		risk = risk == 10 ? 1 : risk;
+	}
+}
+
+void
+init_nodes(cntxt* c)
+{
+	for (int y = 0; y < c->size; y++) {
+		for (int x = 0; x < c->size; x++) {
+			node* n = &(c->map[x][y]);
+
+			n->x = x;
+			n->y = y;
+			n->total_risk = -1; /* Placeholder for infinity/unknown */
+			n->visited = false;
 		}
-		grid = realloc(grid, sizeof(int) * (i + x * y + 1));
-		grid[i + x * y] = c - '0';
+	}
+
+	c->map[0][0].total_risk = 0;
+}
+
+void
+pathfind(cntxt* c)
+{
+	node *n = &(c->map[0][0]);
+	int sz = c->size - 1; /* c.size stores the actual size, not the max index, so you have to sub 1 */
+
+	while (n->x != sz || n->y != sz) {
+		int x = n->x;
+		int y = n->y;
+
+		n->visited = true;
+
+		node* neighbours[4] = {
+			(x > 0 ? &(c->map[x - 1][y]) : NULL),
+			(y > 0 ? &(c->map[x][y - 1]) : NULL),
+			(x < sz ? &(c->map[x + 1][y]) : NULL),
+			(y < sz ? &(c->map[x][y + 1]) : NULL)
+		};
+
+		for (int i = 0; i < 4; i++) {
+			node *ngb = neighbours[i];
+
+			if (ngb == NULL || ngb->visited)
+				continue;
+
+			int tmp = ngb->risk + n->total_risk;
+
+			if (tmp < ngb->total_risk || ngb->total_risk == -1)
+				ngb->total_risk = tmp;
+		}						
+
+		n = get_shortest(c);
 	}
 }
 
-
-static path findPath(void)
+node*
+get_shortest(cntxt* c)
 {
-	node start, end;
+	node* n = NULL;
 
-	start.x = 0; start.y = 0;
-	end.x = x - 1; end.y = y - 1;
-	
-	processNodes(&start);
-	
-	while (!(compareNodes(&current, &end))) {
-	
+	for (int y = 0; y < c->size; y++) {
+		for (int x = 0; x < c->size; x++) {
+			node *cmp = &(c->map[x][y]);
 
+			if (
+				cmp->total_risk > 0 && cmp->visited == false &&
+				(n == NULL || n->total_risk > cmp->total_risk)
+			   )
+				n = cmp;
+		}
 	}
 
-}
-
-unsigned int
-pathfind(cave *curr, int max_vst, _Bool vstd_twice)
-{
-	if (strcmp(curr->name, "end") == 0)
-		return 1;
-
-	if (
-		curr->is_small && curr->visits >= 1 &&
-		(strcmp(curr->name, "start") == 0 || max_vst == 1 || vstd_twice)
-	   )
-		return 0;
-
-	++curr->visits;
-	vstd_twice = vstd_twice || (curr->is_small && max_vst == 2 && curr->visits >= 2);
-
-	unsigned int found_paths = 0;
-
-	for (int i = 0; i < curr->conn_cnt; ++i) {
-		found_paths += pathfind(curr->conn_list[i], max_vst, vstd_twice);
-	}
-
-	--curr->visits; /* The number of visits doesn't increase past 2, so it subs 1 after the twice-visited cave is
-			 * processed and backtracks to tell the next paths the cave hasn't been visited twice */
-
-	return found_paths;
-}
-
-static void processNode(node *a)
-{
-	open = realloc(open, sizeof(node*) * (open_amount + 1));
-	open[open_amount++] = a;
-
-	closed_amount = 0;
-	for (int i = 0; i < open_amount; ++i) {
-		a = open[i];
-		if (a->y > 0 && isOpen(a->x, a->y - 1)) {
-			closed = realloc(closed, sizeof(node*) * (closed_amount
-								  + 1));
-			closed[closed_amount++] = 
-				 (a->y < y - 1 && isOpen(a->x, a->y + 1)) +
-				 (a->x > 0 && isopen(a->x - 1, a->y)) +
-				 (a->x < x - 1 && isOpen(a->x + 1, a->y));
-	}
-	closed = realloc(closed, sizeof(node*) * (closed_amount + neighbours));
-
-bool compareNodes(node *a, node *b)
-{
-	return (!(a && b) || a->x != b->x || a->y != b->y)
+	return n;
 }
