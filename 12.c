@@ -4,6 +4,7 @@
 /* The new version of this one turned out way better. Miles better. I'm also trying out a new style... */
 
 #include <stdio.h>
+#include <string.h>
 #include <stdbool.h>
 
 #include "strmanip.h"
@@ -17,11 +18,13 @@ typedef struct cave {
 
 	struct cave **conn_list;
 	int conn_cnt;
+	int cap;
 } cave;
 
 typedef struct {
 	cave **cave_list;
 	int cave_cnt;
+	int cap;
 } cntxt;
 
 /* Function declarations */
@@ -29,7 +32,7 @@ void input_caves(cntxt *c);
 cave* get_cave(cntxt *c, char *name);
 cave* alloc_cave(cntxt *c, char *name);
 void connect_caves(cave *a, cave *b);
-unsigned int pathfind(cave *curr, int max_vst, _Bool vstd_twice);
+int pathfind(cave *curr, int max_vst, _Bool vstd_twice);
 
 int
 main(void)
@@ -37,6 +40,7 @@ main(void)
 	cntxt c = {
 		.cave_list = NULL,
 		.cave_cnt = 0,
+		.cap = 0
 	};
 
 	input_caves(&c);
@@ -90,8 +94,11 @@ alloc_cave(cntxt *c, char *name)
 	p->is_small = 'a' <= *name && *name <= 'z';
 	p->conn_list = NULL;
 	p->conn_cnt = 0;
+	p->cap = 0;
 
-	c->cave_list = mem_realloc(c->cave_list, (c->cave_cnt + 1) * sizeof(cave*));
+	if (c->cave_cnt == c->cap)
+		c->cave_list = mem_realloc(c->cave_list, (c->cap += 128) * sizeof(cave*));
+
 	c->cave_list[c->cave_cnt++] = p;
 
 	return p;
@@ -100,14 +107,16 @@ alloc_cave(cntxt *c, char *name)
 void
 connect_caves(cave *a, cave *b)
 {
-	a->conn_list = mem_realloc(a->conn_list, (a->conn_cnt + 1) * sizeof(cave*));
-	b->conn_list = mem_realloc(b->conn_list, (b->conn_cnt + 1) * sizeof(cave*));
+	if (a->conn_cnt == a->cap)
+		a->conn_list = mem_realloc(a->conn_list, (a->cap += 128) * sizeof(cave*));
+	if (b->conn_cnt == b->cap)
+		b->conn_list = mem_realloc(b->conn_list, (b->cap += 128) * sizeof(cave*));
 
 	a->conn_list[a->conn_cnt++] = b;
 	b->conn_list[b->conn_cnt++] = a;
 }
 
-unsigned int
+int
 pathfind(cave *curr, int max_vst, _Bool vstd_twice)
 {
 	if (strcmp(curr->name, "end") == 0)
@@ -122,14 +131,13 @@ pathfind(cave *curr, int max_vst, _Bool vstd_twice)
 	++curr->visits;
 	vstd_twice = vstd_twice || (curr->is_small && max_vst == 2 && curr->visits >= 2);
 
-	unsigned int found_paths = 0;
+	int found_paths = 0;
 
-	for (int i = 0; i < curr->conn_cnt; ++i) {
+	for (int i = 0; i < curr->conn_cnt; ++i)
 		found_paths += pathfind(curr->conn_list[i], max_vst, vstd_twice);
-	}
 
-	--curr->visits; /* The number of visits doesn't increase past 2, so it subs 1 after the twice-visited cave is
-			 * processed and backtracks to tell the next paths the cave hasn't been visited twice */
+	--curr->visits; /* When the algorithm backtracks a cave, it's as if it hadn't been visited before, so it has *
+			 * to sub 1 from the visit counter.							     */
 
 	return found_paths;
 }
