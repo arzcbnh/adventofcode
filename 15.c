@@ -63,7 +63,7 @@ main(void)
 
 		node* n = c.queue[0];
 
-		/* c.size stores the actual dimension, not the max index, so you need to sub 1 */
+		// c.size stores the actual dimension, not the max index, so you need to sub 1
 		while (n->x != c.size - 1 || n->y != c.size - 1) {
 			pathfind(&c, n);
 			n = c.queue[0];
@@ -234,9 +234,9 @@ void
 pull_queue(cntxt* c)
 {
 	// If the capacity is full and it pulls, it'll access memory after the allocated block, so it needs to check
-	// for capacity - 1.
+	// for capacity - 2.
 
-	for (int i = 0; c->queue[i] != NULL || i == c->q_cap - 1; i++)
+	for (int i = 0; i < c->q_cap - 1 && c->queue[i] != NULL; i++)
 		c->queue[i] = c->queue[i + 1];
 
 	c->queue[c->q_cap - 1] = NULL;
@@ -245,7 +245,7 @@ pull_queue(cntxt* c)
 void
 init_queue(cntxt* c)
 {
-	for (int i = 0; c->queue[i] != NULL || i == c->q_cap; i++)
+	for (int i = 0; i != c->q_cap && c->queue[i] != NULL; i++)
 		c->queue[i] = NULL;
 }
 

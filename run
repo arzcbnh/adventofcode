@@ -35,6 +35,6 @@ fi
 eval "$CC $PROGRAM strmanip.c memmanage.c" && ./a.out < "$INPUT" && {
 	if [ "$VALGRIND" = "true" ]; then
 		head -n 1 > /dev/null
-		valgrind -s --leak-check=full --track-origins=yes ./a.out < "$INPUT"
+		valgrind -s --leak-check=full --track-origins=yes --max-stackframe=10000000 ./a.out < "$INPUT"
 	fi
 }
