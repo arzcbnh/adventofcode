@@ -144,12 +144,12 @@ str_input(void)
 		c = getchar();
 	}
 
-	if (i == cap) {
+	if (s != NULL && i == cap) {
 		cap += 512;
 		s = mem_realloc(s, cap * sizeof(char));
 	}
 
-	if (s) s[i - 1] = '\0';
+	if (s != NULL) s[i] = '\0';
 	return s;
 }
 
@@ -214,12 +214,37 @@ str_word(int n, char *s)
 }
 
 char*
-str_literal(char *s)
+str_copy(char *s)
 {
 	size_t len = strlen(s);
-	char *new = mem_alloc((len + 1) * sizeof(char));
+	char *cp = mem_alloc((len + 1) * sizeof(char));
 
-	memcpy(new, s, len);
+	memcpy(cp, s, len);
 
-	return new;
+	return cp;
+}
+
+char*
+str_reverse(char *s)
+{
+	size_t len = strlen(s);
+	char* rv = mem_alloc((len + 1) * sizeof(char));
+
+	for (size_t i = 0; i < len; i++)
+		rv[i] = s[len - 1 - i];
+
+	return rv;
+}
+
+char*
+str_extract(char* s, size_t p1, size_t p2)
+{
+	size_t len = p2 - p1;
+	char *ext = mem_alloc((len + 1) * sizeof(char));
+
+	for (size_t i = 0; i < len; ++i)
+		ext[i] = s[p1 + i];
+
+	ext[len + 1] = '\0';
+	return ext;
 }

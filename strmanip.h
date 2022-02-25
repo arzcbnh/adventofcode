@@ -12,6 +12,8 @@ char str_pop(char *s);
 char* str_input(void);
 int str_to_int_array(char *s, int **a);
 char* str_word(int n, char *s);
-char* str_literal(char *str);
+char* str_copy(char *s);
+char* str_reverse(char* s);
+char* str_extract(char* s, size_t p1, size_t p2);
 
 #endif
