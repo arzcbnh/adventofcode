@@ -24,11 +24,11 @@ if [ -z "$PROGRAM" ]; then
 	exit 1
 fi
 
-if ! ls strmanip.o > /dev/null 2>&1; then
+if ! ls strmanip.o > /dev/null 2>&1 || [ "$(stat -c %Y strmanip.o)" -lt "$(stat -c %Y strmanip.c)" ]; then
 	eval "$CC -c strmanip.c"
 fi
 
-if ! ls memmanage.o > /dev/null 2>&1; then
+if ! ls memmanage.o > /dev/null 2>&1 || [ "$(stat -c %Y memmanage.o)" -lt "$(stat -c %Y memmanage.c)" ]; then
 	eval "$CC -c memmanage.c"
 fi
 
