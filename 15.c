@@ -7,7 +7,7 @@
 // that produces jpg images for each state of the pathfinding, but it was so bad and so slow that it crashed 4 nodes
 // before completion, after running for an hour and a half. I decided to upgrade the program by learning the A*
 // algorithm and it turned out amazing! I mean, it looks horrible, and it's not really fast because it doesn't allow
-// heuristics, but it works and is faster than my version of Dijkstra's...
+// heuristics (and because I'm a bad programmer), but it works and is faster than my version of Dijkstra's...
 
 #include <stdio.h>
 #include <stdbool.h>
