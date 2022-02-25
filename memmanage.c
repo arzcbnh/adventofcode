@@ -8,79 +8,77 @@
 
 // Types
 typedef struct {
-	unsigned long i;
-	_Bool found;
-} mem_result;
+	size_t i;
+	bool found;
+} find_result;
 
 // Global variables
-static void **mem_add;
-static unsigned long qty;
-static unsigned long cap;
+static void **address_list;
+static size_t qty;
+static size_t cap;
 
 static void
 mem_expand(void)
 {
 	if (qty == cap)
-		mem_add = realloc(mem_add, (cap += 1024) * sizeof(void*));
+		address_list = realloc(address_list, (cap += 1024) * sizeof(void*));
 }
 
-static mem_result
-mem_find(void *ptr)
+static find_result
+mem_find(void *p)
 {
-	unsigned long i = 0;
-
-	if (!ptr) i = qty;
+	size_t i = p == NULL ? qty : 0;
 
 	for (; i < qty; ++i) {
-		if (ptr == mem_add[i])
+		if (p == address_list[i])
 			break;
 	}
 
-	mem_result r = {
+	find_result fr = {
 		.i = i,
 		.found = i != qty ? true : false
 	};
 
-	return r;
+	return fr;
 }
 
 static void
-mem_push(void *ptr)
+mem_push(void *p)
 {
 	mem_expand();
-	mem_add[qty++] = ptr;
+	address_list[qty++] = p;
 }
 
-void
-*mem_alloc(size_t num)
+void*
+mem_alloc(size_t n)
 {
-	if (!num) return NULL;
+	if (n == 0) return NULL;
 
-	void *ptr = calloc(num, sizeof(char));
-	mem_push(ptr);
-	return ptr;
+	void *p = calloc(n, sizeof(char));
+	mem_push(p);
+	return p;
 }
 
-void
-*mem_realloc(void *ptr, size_t new_size)
+void*
+mem_realloc(void *p, size_t new_size)
 {
-	if (!new_size) return NULL;
+	if (new_size == 0) return NULL;
 
-	mem_result m = mem_find(ptr);
+	find_result fr = mem_find(p);
 
-	if (m.found) {
-		ptr = realloc(ptr, new_size);
-		mem_add[m.i] = ptr;
+	if (fr.found) {
+		p = realloc(p, new_size);
+		address_list[fr.i] = p;
 	} else
-		ptr = mem_alloc(new_size);
+		p = mem_alloc(new_size);
 
-	return ptr;
+	return p;
 }
 	
 void
 mem_clean(void)
 {
-	for (unsigned long i = 0; i < qty; ++i)
-		free(mem_add[i]);
-	free(mem_add);
+	for (size_t i = 0; i < qty; ++i)
+		free(address_list[i]);
+	free(address_list);
 }

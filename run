@@ -3,7 +3,7 @@
 CC="gcc -g -std=c99 -pedantic -W -Wall -Werror -lm"
 PROGRAM=""
 INPUT="input"
-VALGRIND=""
+VALGRIND="false"
 
 for arg in "$@"; do
 	case "$arg" in
@@ -14,19 +14,27 @@ for arg in "$@"; do
 			INPUT="test"
 			;;
 		-v)
-			VALGRIND="valgrind -s --leak-check=full --track-origins=yes"
+			VALGRIND="true"
 			;;
 	esac
 done
 
-if [ -z PROGRAM ]; then
-	echo "No program selected"
+if [ -z "$PROGRAM" ]; then
+	echo "Error: no program selected"
 	exit 1
 fi
 
-eval "$CC $PROGRAM" && eval "./a.out < $INPUT" && {
-	if [ -n "$VALGRIND" ]; then
+if ! ls strmanip.o > /dev/null 2>&1; then
+	eval "$CC -c strmanip.c"
+fi
+
+if ! ls memmanage.o > /dev/null 2>&1; then
+	eval "$CC -c memmanage.c"
+fi
+
+eval "$CC $PROGRAM strmanip.c memmanage.c" && ./a.out < "$INPUT" && {
+	if [ "$VALGRIND" = "true" ]; then
 		head -n 1 > /dev/null
-		eval "$VALGRIND ./a.out < $INPUT"
+		valgrind -s --leak-check=full --track-origins=yes ./a.out < "$INPUT"
 	fi
 }
