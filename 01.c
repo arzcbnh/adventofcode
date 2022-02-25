@@ -26,6 +26,7 @@ int main(void)
 		++incr1;
 
 	while ((s = str_input())) {
+		puts(s);
 		int curr = atoi(s);
 		free(s);
 
