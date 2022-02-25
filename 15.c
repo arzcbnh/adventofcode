@@ -6,7 +6,8 @@
 // learning it and I'm grateful that AoC gave me this opportunity. I drafted a second, even more inefficient program
 // that produces jpg images for each state of the pathfinding, but it was so bad and so slow that it crashed 4 nodes
 // before completion, after running for an hour and a half. I decided to upgrade the program by learning the A*
-// algorithm and it turned out amazing! I mean, it looks horrible, but it works...
+// algorithm and it turned out amazing! I mean, it looks horrible, and it's not really fast because it doesn't allow
+// heuristics, but it works and is faster than my version of Dijkstra's...
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -53,17 +54,6 @@ main(void)
 	};
 
 	input_map(&c);
-
-	/*
-	for (int y = 0; y < c.size; ++y) {
-		for (int x = 0; x < c.size; ++x)
-			printf("%i", c.map[x][y].risk);
-
-		putchar('\n');
-	}
-	putchar('\n');
-	*/
-
 	expand_map(&c);
 
 	for (int i = 0; i < 2; ++i) {
@@ -77,12 +67,6 @@ main(void)
 		while (n->x != c.size - 1 || n->y != c.size - 1) {
 			pathfind(&c, n);
 			n = c.queue[0];
-			/*
-			printf("%i %i %i\n", n->x, n->y, n->total_risk);
-			for (int i = 0; c.queue[i] != NULL; i++)
-				printf("(%i,%i), ", c.queue[i]->x, c.queue[i]->y);
-			putchar('\n');
-			*/
 		}
 
 		printf("Part %i: %i\n", i + 1, n->total_risk);
@@ -90,18 +74,7 @@ main(void)
 		c.size *= 5;
 	}
 
-	/*
-	for (int y = 0; y < 100; ++y) {
-		for (int x = 0; x < 100; ++x)
-			if (c.map[99][99].path->)
-			printf("\033[1m%i\033[0m", c.map[x][y].risk);
-			else
-			printf("%i", c.map[x][y].risk);
-
-		putchar('\n');
-	}
-	putchar('\n');
-	*/
+	mem_clean();
 
 	return 0;
 }
@@ -196,7 +169,7 @@ init_nodes(cntxt* c)
 void
 pathfind(cntxt* c, node* n)
 {
-	int sz = c->size - 1; // c.size is storing the actual size, so to access the index, you have to sub 1
+	int sz = c->size - 1;
 	int x = n->x;
 	int y = n->y;
 
@@ -218,28 +191,12 @@ pathfind(cntxt* c, node* n)
 
 		int tmp = ngb->risk + n->total_risk;
 
-		if (tmp < ngb->total_risk || ngb->total_risk == -1)
+		if (tmp < ngb->total_risk || ngb->total_risk == -1) {
 			ngb->total_risk = tmp;
-
-		/*
-		update_path(n, ngb);
-		*/
-		update_queue(c, ngb);
+			update_queue(c, ngb);
+		}
 	}
 }
-
-/*
-void
-update_path(node* n, node* ngb)
-{
-	int i = 0;
-
-	for (i = 0; n->path[i] != NULL; n++)
-		t->path[i]=f->path[i];
-
-	f->path[i] = NULL;
-}
-*/
 
 void
 update_queue(cntxt* c, node* n)
@@ -256,11 +213,11 @@ update_queue(cntxt* c, node* n)
 	}
 
 	for (; q[new] != NULL; new++) {
-		// Calculate the distance to the final node and sum the total risk
-		int dist_q = q[new]->total_risk + (c->size * 2) - q[new]->x - q[new]->y - 2;
-		int dist_n = n->total_risk 	+ (c->size * 2) - n->x 	    - n->y	- 2;
+		// Complicated cost formula because of variable name but whatever
+		int dist_q = 2 * c->size - q[new]->x - q[new]->y - 2;
+		int dist_n = 2 * c->size - n->x - n->y - 2;
 
-		if (dist_q >= dist_n)
+		if (dist_q + q[new]->total_risk >= dist_n + n->total_risk)
 			break;
 	}
 
