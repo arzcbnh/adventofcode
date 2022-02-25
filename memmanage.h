@@ -6,9 +6,7 @@
 
 // Functions
 void *mem_alloc(size_t num);
-
 void *mem_realloc(void *ptr, size_t new_size);
-	
 void mem_clean(void);
 
 #endif
