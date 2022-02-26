@@ -252,7 +252,7 @@ str_extract(char* s, size_t p1, size_t p2)
 int
 chr_hex_to_int(char h)
 {
-	if ('0' <= h && h <= '9') {
+	if (isdigit(h)) {
 		return h - '0';
 	} else {
 		h = tolower(h);

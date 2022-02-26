@@ -68,17 +68,6 @@ main(void)
 	printf("Part 1: %u\n", sum_versions(start_pkt));
 	printf("Part 2: %lu\n", calc_packets(start_pkt));
 
-	/*
-	decode_packets(&c);
-	*/
-
-	/*
-	printf("%s\n\n", c.bin);
-	for (int i = 0; i < c.cnt; i++)
-		printf("%s\n", c.pkts[i]);
-	printf("\n%s\n", c.op);
-	*/
-
 	return 0;
 }
 
