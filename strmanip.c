@@ -245,7 +245,7 @@ str_extract(char* s, size_t p1, size_t p2)
 	for (size_t i = 0; i < len; ++i)
 		ext[i] = s[p1 + i];
 
-	ext[len + 1] = '\0';
+	ext[len] = '\0';
 	return ext;
 }
 

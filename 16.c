@@ -68,6 +68,8 @@ main(void)
 	printf("Part 1: %u\n", sum_versions(start_pkt));
 	printf("Part 2: %lu\n", calc_packets(start_pkt));
 
+	mem_clean();
+
 	return 0;
 }
 
