@@ -248,3 +248,55 @@ str_extract(char* s, size_t p1, size_t p2)
 	ext[len + 1] = '\0';
 	return ext;
 }
+
+int
+chr_hex_to_int(char h)
+{
+	if ('0' <= h && h <= '9') {
+		return h - '0';
+	} else {
+		h = tolower(h);
+		return h - 87;
+	}
+}
+
+int
+str_hex_to_int(char* s)
+{
+	int n = 0;
+
+	for (int i = 0; s[i] != '\0'; i++)
+		n += chr_hex_to_int(s[i]);
+
+	return n;
+}
+
+int
+str_bin_to_int(char* s)
+{
+	int n = 0;
+
+	for (int i = 0; s[i] != '\0'; i++)
+		n = s[i] == '1' ? ~(~n << 1) : n << 1;
+
+	return n;
+}
+
+char*
+str_int_to_str(int n)
+{
+	char* s = mem_alloc(16 * sizeof(char));
+	int cap = 16;
+
+	for (int i = 0; n > 0; ++i) {
+		if (i == cap) {
+			cap += 16;
+			s = mem_realloc(s, cap * sizeof(char));
+		}
+
+		s[i] = n % 10 + '0';
+		n /= 10;
+	}
+
+	return str_reverse(s);
+}
