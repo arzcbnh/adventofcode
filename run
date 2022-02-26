@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-CC="gcc -g -std=c99 -pedantic -W -Wall -Werror -lm"
+CC="gcc -g -std=c99 -pedantic -W -Wall -Werror"
 PROGRAM=""
 INPUT="input"
 VALGRIND="false"
@@ -32,7 +32,7 @@ if ! ls memmanage.o > /dev/null 2>&1 || [ "$(stat -c %Y memmanage.o)" -lt "$(sta
 	eval "$CC -c memmanage.c"
 fi
 
-eval "$CC $PROGRAM strmanip.c memmanage.c" && ./a.out < "$INPUT" && {
+eval "$CC $PROGRAM strmanip.c memmanage.c -lm" && ./a.out < "$INPUT" && {
 	if [ "$VALGRIND" = "true" ]; then
 		head -n 1 > /dev/null
 		valgrind -s --leak-check=full --track-origins=yes --max-stackframe=10000000 ./a.out < "$INPUT"
