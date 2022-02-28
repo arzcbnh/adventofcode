@@ -250,17 +250,19 @@ explode_pair(pair* p)
 {
 	close_pair c = get_closest_number(p, LEFT);
 
-	if (c.side == LEFT)
+	if (c.side == LEFT) {
 		c.address->n_left += p->n_left;
-	else if (c.side == RIGHT)
+	} else if (c.side == RIGHT) {
 		c.address->n_right += p->n_left;
+	}
 
 	c = get_closest_number(p, RIGHT);
 
-	if (c.side == LEFT)
+	if (c.side == LEFT) {
 		c.address->n_left += p->n_right;
-	else if (c.side == RIGHT)
+	} else if (c.side == RIGHT) {
 		c.address->n_right += p->n_right;
+	}
 
 	pair* parent = p->parent;
 
@@ -307,8 +309,9 @@ get_closest_number(pair* p, side_t side)
 	while (
 		(side == LEFT && p->p_right != NULL) ||
 		(side == RIGHT && p->p_left != NULL)
-	      )
+	      ) {
 		p = side == LEFT ? p->p_right : p->p_left;
+	}
 
 	close_pair c = { .address = p, .side = side == LEFT ? RIGHT : LEFT };
 	return c;
