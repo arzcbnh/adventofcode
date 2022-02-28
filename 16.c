@@ -277,7 +277,7 @@ mtp_array(long* nums, int n_cnt)
 long
 min_array(long* nums, int n_cnt)
 {
-	long min = nums[0];;
+	long min = nums[0];
 
 	for (int i = 1; i < n_cnt; i++)
 		min = min < nums[i] ? min : nums[i];

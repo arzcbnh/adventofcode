@@ -1,10 +1,7 @@
 // Advent of Code 2021 - Day 17
 // Written by Henry Peaurt
 
-// I confess to spoiling myself the Part 1 formula, but after trying some really complex math and realizing it's just
-// n-sum and Bhaskara, I can't help but think this is one of the easiest programs to make. I just bruteforced
-// everything into main and reorganized the program later. I don't know whether I feel thankful for how easy it was or
-// annoyed because it was very boring. However, the program looks like crap and hard to understand.
+// I threw variable naming conventions away for this one.
 
 #include <stdio.h>
 #include <stdlib.h>
