@@ -77,6 +77,8 @@ main(void)
 	printf("Part 1: %lu\n", calc_magnitude(c.sum));
 	printf("Part 2: %lu\n", calc_max_sum_two(&c));
 
+	mem_clean();
+
 	return 0;
 }
 
