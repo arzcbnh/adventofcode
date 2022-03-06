@@ -16,6 +16,9 @@ for arg in "$@"; do
 		-v)
 			VALGRIND="true"
 			;;
+		-s)
+			CC="gcc -g"
+			;;
 	esac
 done
 
