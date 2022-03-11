@@ -183,6 +183,12 @@ str_to_int_array(char *s, int **a)
 	return cnt;
 }
 
+static bool
+iswordchar(char c)
+{
+	return isalnum(c) || c == '-' || c == '\'';
+}
+
 char*
 str_word(int n, char *s)
 {
@@ -191,16 +197,16 @@ str_word(int n, char *s)
 
 	// Skip words until n
 	for (; n > 0; n--) {
-		while (isalnum(s[i]))
+		while (iswordchar(s[i]))
 			i++;
-		while (!isalnum(s[i]) && s[i] != '\0')
+		while (!iswordchar(s[i]))
 			i++;
 	}
 
 	int len = 0;
 	int cap = 0;
 
-	while (isalnum(s[i]) && s[i] != '\0') {
+	while (iswordchar(s[i])) {
 		if (len == cap)
 			w = mem_realloc(w, (cap += 20) * sizeof(char));
 
