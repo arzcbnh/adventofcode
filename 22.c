@@ -44,6 +44,8 @@ main(void)
 	printf("Part 1: %lu\n", sum_cubes(start, true));
 	printf("Part 2: %lu\n", sum_cubes(start, false));
 
+	mem_clean();
+
 	return 0;
 }
 
