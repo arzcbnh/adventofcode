@@ -2,6 +2,3 @@ a.out
 input
 test
 tmp
-*.o
-memtest.c
-strtest.c
