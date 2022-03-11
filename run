@@ -3,15 +3,16 @@
 # Usage:
 #	./run [OPTION...] FILE
 
-CC="gcc -g -std=c99 -pedantic -W -Wall -Werror"
+CC="cc"
+CCARGS="-g -std=c99 -pedantic -W -Wall -Werror"
 INPUT="input"
 VALGRIND=false
 
 while getopts ":stv" arg; do
 	case "$arg" in
-		s) CC="gcc -g" ;;
-		t) INPUT="test" ;;
-		v) VALGRIND=true ;;
+		s) CCARGS="-g" ;; # Simple compilation, disables pedantic
+		t) INPUT="test" ;; # Use test file as input
+		v) VALGRIND=true ;; # Check with Valgrind
 		*) ;;
 	esac
 done
@@ -23,9 +24,11 @@ if ! echo "$PROGRAM" | grep -q -E '\.c'; then
 	exit 1
 fi
 
-eval "$CC $PROGRAM strmanip.c memmanage.c -lm" && ./a.out < "$INPUT" && {
+eval "$CC $CCARGS $PROGRAM strmanip.c memmanage.c -lm" && ./a.out < "$INPUT" && {
 	if "$VALGRIND"; then
 		head -n 1 > /dev/null
-		valgrind -s --leak-check=full --track-origins=yes --max-stackframe=10000000 ./a.out < "$INPUT"
+		valgrind -s --leak-check=full --track-origins=yes ./a.out < "$INPUT"
 	fi
 }
+
+# --max-stackframe=10000000 
