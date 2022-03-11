@@ -1,34 +1,30 @@
-#!/usr/bin/env sh
+#!/bin/env sh
+
+# Usage:
+#	./run [OPTION...] FILE
 
 CC="gcc -g -std=c99 -pedantic -W -Wall -Werror"
-PROGRAM=""
 INPUT="input"
-VALGRIND="false"
+VALGRIND=false
 
-for arg in "$@"; do
+while getopts ":stv" arg; do
 	case "$arg" in
-		*.c)
-			PROGRAM="$arg"
-			;;
-		-t)
-			INPUT="test"
-			;;
-		-v)
-			VALGRIND="true"
-			;;
-		-s)
-			CC="gcc -g"
-			;;
+		s) CC="gcc -g" ;;
+		t) INPUT="test" ;;
+		v) VALGRIND=true ;;
+		*) ;;
 	esac
 done
 
-if [ -z "$PROGRAM" ]; then
-	echo "Error: no program selected"
+PROGRAM=$(eval echo "\$$OPTIND")
+
+if ! echo "$PROGRAM" | grep -q -E '\.c'; then
+	echo "Error: missing program"
 	exit 1
 fi
 
 eval "$CC $PROGRAM strmanip.c memmanage.c -lm" && ./a.out < "$INPUT" && {
-	if [ "$VALGRIND" = "true" ]; then
+	if "$VALGRIND"; then
 		head -n 1 > /dev/null
 		valgrind -s --leak-check=full --track-origins=yes --max-stackframe=10000000 ./a.out < "$INPUT"
 	fi
