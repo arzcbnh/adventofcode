@@ -8,14 +8,15 @@
 #include <string.h>
 
 #include "strmanip.h"
+#include "memmanage.h"
 
 int main(void)
 {
-	char *order = NULL;
 	long depth1 = 0;
 	long depth2 = 0;
 	long position = 0;
 	long aim = 0;
+	char *order;
 
 	while ((order = str_input())) {
 		if (strstr(order, "forward")) {
@@ -31,11 +32,12 @@ int main(void)
 			depth1 += n;
 			aim += n;
 		}
-		
-		free(order);
 	}
 
-	printf("Part 1: %ld\n", position * depth1);
-	printf("Part 2: %ld\n", position * depth2);
+	printf("Part 1: %lu\n", position * depth1);
+	printf("Part 2: %lu\n", position * depth2);
+
+	mem_clean();
+
 	return 0;
 }

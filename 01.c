@@ -7,41 +7,37 @@
 #include <stdlib.h>
 
 #include "strmanip.h"
+#include "memmanage.h"
 
 int main(void)
 {
-	char *s = str_input();
-	int very_prev = atoi(s);
-	free(s);
+	int anteprev = atoi(str_input());
+	int prev = atoi(str_input());
+	int curr = atoi(str_input());
 
-	s = str_input();
-	int prev = atoi(s);
-	free(s);
+	int part1 = (anteprev < prev) + (prev < curr);
+	int part2 = 0;
 
-	int incr1 = 0;
-	int incr2 = 0;
-	int prev_sum = (unsigned) -1 >> 1;
+	int prev_sum = anteprev + prev + curr;
+	char *s;
 
-	if (very_prev < prev)
-		++incr1;
-
-	while ((s = str_input())) {
-		puts(s);
-		int curr = atoi(s);
-		free(s);
-
-		int curr_sum = very_prev + prev + curr;
-		if (prev_sum < curr_sum)
-			++incr2;
-		prev_sum = curr_sum;
-
-		if (prev < curr)
-			++incr1;
-		very_prev = prev;
+	while (s = str_input()) {
+		anteprev = prev;
 		prev = curr;
+		curr = atoi(s);
+
+		int curr_sum = anteprev + prev + curr;
+
+		part1 += prev < curr;
+		part2 += prev_sum < curr_sum;
+
+		prev_sum = curr_sum;
 	}
 
-	printf("Part 1: %d\n", incr1);
-	printf("Part 2: %d\n", incr2);
+	printf("Part 1: %u\n", part1);
+	printf("Part 2: %u\n", part2);
+
+	mem_clean();
+
 	return 0;
 }
