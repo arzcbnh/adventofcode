@@ -8,11 +8,12 @@ CCARGS="-g -std=c99 -pedantic -W -Wall -Werror"
 INPUT="input"
 VALGRIND=false
 
-while getopts ":stv" arg; do
+while getopts ":gstv" arg; do
 	case "$arg" in
+		g) CC="gcc" ;;
 		s) CCARGS="-g" ;; # Simple compilation, disables pedantic
 		t) INPUT="test" ;; # Use test file as input
-		v) VALGRIND=true ;; # Check with Valgrind
+		v) VALGRIND=true ;;
 		*) ;;
 	esac
 done
