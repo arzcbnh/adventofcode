@@ -52,8 +52,6 @@ mem_push(Cell *c)
 void *
 mem_alloc(size_t n)
 {
-	if (n == 0) return NULL;
-
 	Cell *c = calloc(1, sizeof(Cell));
 	c->address = calloc(n, sizeof(char));
 	c->size = n;
@@ -65,19 +63,18 @@ mem_alloc(size_t n)
 void *
 mem_realloc(void *p, size_t new_size)
 {
-	if (p == NULL) return mem_alloc(new_size);
-	if (new_size == 0) return NULL;
+	if (p == NULL || start == NULL)
+		return mem_alloc(new_size);
 
 	Cell *c = mem_find(p);
 
 	if (c != NULL && c->size < new_size) {
 		c->address = realloc(c->address, new_size);
 		c->size = new_size;
-		return c->address;
 	} else if (c == NULL)
 		return mem_alloc(new_size);
-	else // p is allocated and has more capacity than needed
-		return p;
+
+	return c->address;
 }
 	
 void
