@@ -14,6 +14,7 @@ typedef struct { int i1, i2, n; } OpData;
 
 // Function declarations
 void input_data(OpData *d);
+void skip_lines(int n);
 long find_model(OpData d[], bool part1);
 long invert_long(long n);
 
@@ -38,20 +39,16 @@ input_data(OpData *d)
 	int i = 0;
 
 	for (int w = 0; w < 14; w++) {
-		// These for loops skip lines.
-		for (int ln = 0; ln < 4; ln += getchar() == '\n')
-			;
+		skip_lines(4);
 		
 		int a = atoi(str_word(2, str_input()));
 		int b = atoi(str_word(2, str_input()));
 
-		for (int ln = 0; ln < 9; ln += getchar() == '\n')
-			;
+		skip_lines(9);
 
 		int c = atoi(str_word(2, str_input()));
 
-		for (int ln = 0; ln < 2; ln += getchar() == '\n')
-			;
+		skip_lines(2);
 
 		if (a == 1) {
 			pair[i].w = w;
@@ -62,6 +59,13 @@ input_data(OpData *d)
 			(d++)->n = pair[i].c + b;
 		}
 	}
+}
+
+void
+skip_lines(int n)
+{
+	for (int ln = 0; ln < n; ln += getchar() == '\n')
+		;
 }
 
 long
@@ -85,12 +89,12 @@ find_model(OpData d[], bool part1)
 long
 invert_long(long n)
 {
-	long i = 0;
+	long inv = 0;
 
 	while (n != 0) {
-		i = i * 10 + n % 10;
+		inv = inv * 10 + n % 10;
 		n /= 10;
 	}
 
-	return i;
+	return inv;
 }
