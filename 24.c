@@ -4,146 +4,93 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <math.h>
 
 #include "strmanip.h"
 #include "memmanage.h"
 
 // Types
-typedef struct { int a, b, c; } OpData;
+typedef struct { int i1, i2, n; } OpData;
 
 // Function declarations
-void input_data(OpData d[]);
-long find_model(OpData *d, long z, int depth);
+void input_data(OpData *d);
+long find_model(OpData d[], bool part1);
+long invert_long(long n);
 
 int
 main(void)
 {
-	OpData d[15];
+	OpData d[7];
 	input_data(d);
 
-	printf("Part 1: %lu\n", find_model(d, 0, 1));
+	printf("Part 1: %lu\n", find_model(d, true));
+	printf("Part 2: %lu\n", find_model(d, false));
 
-	/*
-	for (int i = 0; i < 14; i++)
-		printf("%i %i %i\n", d[i].a, d[i].b, d[i].c);
-		*/
+	mem_clean();
 
 	return 0;
 }
 
 void
-input_data(OpData d[])
+input_data(OpData *d)
 {
-	for (int i = 0; i < 14; i++) {
+	struct { int w, c; } pair[7];
+	int i = 0;
+
+	for (int w = 0; w < 14; w++) {
 		// These for loops skip lines.
-		for (int n = 0; n < 4; n += getchar() == '\n')
+		for (int ln = 0; ln < 4; ln += getchar() == '\n')
 			;
 		
-		d[i].a = atoi(str_word(2, str_input()));
-		d[i].b = atoi(str_word(2, str_input()));
+		int a = atoi(str_word(2, str_input()));
+		int b = atoi(str_word(2, str_input()));
 
-		for (int n = 0; n < 9; n += getchar() == '\n')
+		for (int ln = 0; ln < 9; ln += getchar() == '\n')
 			;
 
-		d[i].c = atoi(str_word(2, str_input()));
+		int c = atoi(str_word(2, str_input()));
 
-		for (int n = 0; n < 2; n += getchar() == '\n')
+		for (int ln = 0; ln < 2; ln += getchar() == '\n')
 			;
+
+		if (a == 1) {
+			pair[i].w = w;
+			pair[i++].c = c;
+		} else {
+			d->i1 = pair[--i].w;
+			d->i2 = w;
+			(d++)->n = pair[i].c + b;
+		}
 	}
 }
 
 long
-find_model(OpData *d, long z, int depth)
+find_model(OpData d[], bool part1)
 {
-	if (depth >= 15) return 0;
+	long model = 0;
 
-	for (int w = 9; w > 0; w--) {
-		int nz = z;
-		int x = z % 26 + d->b != w;
-		nz /= d->a;
-		nz *= 25 * x + 1;
-		nz += (w + d->c) * x;
-		if (ok) nz = 26 * nz + w + d->c;
-
-		if (d->a == 26 && nz % 26 != 0) continue;
-		long model = find_model(d + 1, nz, depth + 1);
-
-		if (model >= 0)
-			return model * 10 + w;
+	for (int i = 0; i < 7; i++) {
+		for (int w = part1 ? 9 : 1; (part1 && w > 0) || (!part1 && w < 10); w += part1 ? -1 : 1) {
+			if (part1 && w + d[i].n < 10 || !part1 && w + d[i].n > 0) {
+				model += w * pow(10, d[i].i1);
+				model += (w + d[i].n) * pow(10, d[i].i2);
+				break;
+			}
+		}
 	}
 
-	return -1;
-}
-
-/*
-#include <unistd.h>
-long
-find_model(Order *start, long model)
-{
-	long input = model;
-
-	while (proc_model(start, input))
-	{
-		printf("%li\n", model);
-		if (--model % 10 == 0)
-			--model;
-		input = next_model(model);
-	}
-
-	return model;
-}
-
-bool
-proc_model(Order *start, long input)
-{
-	Order *curr = start;
-	char w, x, y, z;
-	w = x = y = z = 0;
-
-	while (curr != NULL) {
-		char *var_a, var_b;
-
-		switch (curr->a) {
-		case W:	var_a = &w; break;
-		case X:	var_a = &x; break;
-		case Y:	var_a = &y; break;
-		case Z:	var_a = &z; break;
-		}
-
-		switch (curr->b) {
-		case W:	var_b = w; break;
-		case X:	var_b = x; break;
-		case Y:	var_b = y; break;
-		case Z:	var_b = z; break;
-		default: var_b = curr->b; break;
-		}
-
-		switch (curr->op) {
-		case INP: *var_a = input % 10; input /= 10; break;
-		case ADD: *var_a += var_b; break;
-		case MUL: *var_a *= var_b; break;
-		case DIV: *var_a /= var_b; break;
-		case MOD: *var_a %= var_b; break;
-		case EQL: *var_a = *var_a == var_b; break;
-		}
-
-		curr = curr->next;
-	}
-
-	return z;
+	return invert_long(model);
 }
 
 long
-next_model(long model)
+invert_long(long n)
 {
-	long new_m = 0;
+	long i = 0;
 
-	for (int i = 0; i < 14; i++) {
-		int n = n % 10;
-		new_m = new_m * 10 + n;
-		model /= 10;
+	while (n != 0) {
+		i = i * 10 + n % 10;
+		n /= 10;
 	}
 
-	return new_m;
+	return i;
 }
-*/
