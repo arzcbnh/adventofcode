@@ -53,8 +53,8 @@ input_data(OpData *d)
 			stack[i].inp = inp;
 			stack[i++].c = c;
 		} else {
-			// The 1st input is actually the 14th digit of the model, so you need to reverse the order by
-			// subbing 13 and multiplying by -1.
+			// The 1st input is actually the 14th digit of the model, so you
+			// need to reverse the order by subbing 13 and multiplying by -1.
 			d->inp1 = (stack[--i].inp - 13) * -1;
 			d->inp2 = (inp - 13) * -1;
 			(d++)->n = stack[i].c + b;
