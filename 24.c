@@ -1,4 +1,4 @@
-// Advend of Code - Day 24
+// Advent of Code - Day 24
 // Written by Henry Peaurt
 
 #include <stdio.h>
@@ -10,13 +10,12 @@
 #include "memmanage.h"
 
 // Types
-typedef struct { int i1, i2, n; } OpData;
+typedef struct { int inp1, inp2, n; } OpData;
 
 // Function declarations
 void input_data(OpData *d);
 void skip_lines(int n);
 long find_model(OpData d[], bool part1);
-long invert_long(long n);
 
 int
 main(void)
@@ -35,10 +34,10 @@ main(void)
 void
 input_data(OpData *d)
 {
-	struct { int w, c; } pair[7];
+	struct { int inp, c; } stack[7];
 	int i = 0;
 
-	for (int w = 0; w < 14; w++) {
+	for (int inp = 0; inp < 14; inp++) {
 		skip_lines(4);
 		
 		int a = atoi(str_word(2, str_input()));
@@ -51,12 +50,14 @@ input_data(OpData *d)
 		skip_lines(2);
 
 		if (a == 1) {
-			pair[i].w = w;
-			pair[i++].c = c;
+			stack[i].inp = inp;
+			stack[i++].c = c;
 		} else {
-			d->i1 = pair[--i].w;
-			d->i2 = w;
-			(d++)->n = pair[i].c + b;
+			// The 1st input is actually the 14th digit of the model, so you need to reverse the order by
+			// subbing 13 and multiplying by -1.
+			d->inp1 = (stack[--i].inp - 13) * -1;
+			d->inp2 = (inp - 13) * -1;
+			(d++)->n = stack[i].c + b;
 		}
 	}
 }
@@ -76,25 +77,12 @@ find_model(OpData d[], bool part1)
 	for (int i = 0; i < 7; i++) {
 		for (int w = part1 ? 9 : 1; part1 && w > 0 || !part1 && w < 10; w += part1 ? -1 : 1) {
 			if (part1 && w + d[i].n < 10 || !part1 && w + d[i].n > 0) {
-				model += w * pow(10, d[i].i1);
-				model += (w + d[i].n) * pow(10, d[i].i2);
+				model += w * pow(10, d[i].inp1);
+				model += (w + d[i].n) * pow(10, d[i].inp2);
 				break;
 			}
 		}
 	}
 
-	return invert_long(model);
-}
-
-long
-invert_long(long n)
-{
-	long inv = 0;
-
-	while (n != 0) {
-		inv = inv * 10 + n % 10;
-		n /= 10;
-	}
-
-	return inv;
+	return model;
 }
