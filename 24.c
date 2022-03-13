@@ -74,7 +74,7 @@ find_model(OpData d[], bool part1)
 	long model = 0;
 
 	for (int i = 0; i < 7; i++) {
-		for (int w = part1 ? 9 : 1; (part1 && w > 0) || (!part1 && w < 10); w += part1 ? -1 : 1) {
+		for (int w = part1 ? 9 : 1; part1 && w > 0 || !part1 && w < 10; w += part1 ? -1 : 1) {
 			if (part1 && w + d[i].n < 10 || !part1 && w + d[i].n > 0) {
 				model += w * pow(10, d[i].i1);
 				model += (w + d[i].n) * pow(10, d[i].i2);
