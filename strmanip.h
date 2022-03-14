@@ -19,5 +19,6 @@ int str_hex_to_int(char* s);
 int str_bin_to_int(char* s);
 int chr_hex_to_int(char h);
 char* str_int_to_str(int n);
+void skip_lines(int n);
 
 #endif

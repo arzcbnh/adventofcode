@@ -274,3 +274,10 @@ str_int_to_str(int n)
 
 	return str_reverse(s);
 }
+
+void
+skip_lines(int n)
+{
+	for (int nl = 0; nl < n; nl += getchar() == '\n')
+		;
+}
