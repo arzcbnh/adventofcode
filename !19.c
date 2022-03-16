@@ -6,149 +6,266 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <math.h>
 
 #include "strmanip.h"
 #include "memmanage.h"
 
-/*
-// Enums
-enum axis { NONE, X, Y, Z };
-
 // Types
-typedef coords beacon;
-
-typedef struct {
-	beacon* a;
-	beacon* b;
-} beacon_pair;
-
-typedef struct {
-	enum axis ax;
-	int degrees;
-} rotation_info;
-*/
-
-typedef struct {
-	int x, y, z;
-} beacon;
-
-typedef struct {
-	int x, y, z;
-
-	beacon** beacon_list[24];
-	int beacon_cnt;
-} scanner;
-
-typedef struct {
-	scanner** scanner_list;
-	int scanner_cnt;
-} cntxt;
+typedef struct Beacon { int x, y, z; struct Beacon *next; } Beacon;
+typedef struct Scanner {
+	Beacon b[24];
+	bool rotated;
+	struct Scanner *next;
+} Scanner;
 
 // Function declarations
-void input_scanners(cntxt* c);
-void input_beacons(scanner* scn);
-void gen_rotated_sets(scanner* scn);
+Scanner *input_scanners(void);
+Beacon input_beacons(void);
+Beacon dup_beacons(Beacon *start);
+void rotate_beacons(Beacon *start, int x, int y, int z);
+void rotate_scanner(Scanner *a, Scanner *b);
+bool xor_rotated(Scanner *a, Scanner *b);
+bool beacons_overlap(Beacon *a, Beacon *b, bool orient);
+bool same_distance(Beacon *a1, Beacon *a2, Beacon *b1, Beacon *b2);
+bool same_orientation(Beacon *a1, Beacon *a2, Beacon *b1, Beacon *b2);
+
+#include <assert.h>
+
+void
+superrotate_scanner_whatever(Scanner *a, Scanner *b, Beacon *a1, Beacon *a2, Beacon *b1, Beacon *b2)
+{
+}
 
 int
 main(void)
 {
-	cntxt c = {
-		.scanner_list = NULL,
-		.scanner_cnt = 0,
-	};
+	Scanner *start = input_scanners();
+	start->rotated = true;
 
-	input_scanners(&c);
+	for (Scanner *iter = start; iter != NULL; iter = iter->next)
+	for (int j = 1; j < 24; j++) {
+		int x = j % 4;
+		int y = j / 4 % 4 * (j < 16);
+		int z = (j >= 16) + (j >= 20) * 2;
 
-	for (int i = 1; i < c.scanner_cnt; i++) {
-		gen_rotated_sets(c.scanner_list[i]);
+		iter->b[j] = dup_beacons(&(iter->b[0]));
+		rotate_beacons(&(iter->b[j]), x, y, z);
 	}
 
-	/*
-	for (int i = 0; i < c.scanner_cnt; i++) {
-		printf("--- scanner %i ---\n", i);
+	for (Scanner *i = start; i != NULL; i = i->next)
+	for (Scanner *j = start; j != NULL; j = j->next)
+		if (xor_rotated(i, j) && beacons_overlap(&(i->b[0]), &(j->b[0]), true))
+		{
+			if (!i->rotated) { Scanner *tmp = j; j = i; i = tmp; }
+			rotate_scanner(i, j);
 
-		for (int j = 0; j < c.scanner_list[i]->b_cnt; j++) {
-			printf("%i, %i, %i\n", c.scanner_list[i]->b_list[j]->x, c.scanner_list[i]->b_list[j]->y, c.scanner_list[i]->b_list[j]->z);
+			for (Beacon *ai = &(i->b[0]);	   matches < 66 && ai != NULL; ai = ai->next)
+			for (Beacon *aj = ai->next; matches < 66 && aj != NULL; aj = aj->next)
+			for (Beacon *bi = &(j->b[0]);	   matches < 66 && bi != NULL; bi = bi->next)
+			for (Beacon *bj = bi->next; matches < 66 && bj != NULL; bj = bj->next)
+			{
+				if (same_distance(ai, aj, bi, bj))
+				{
+					superrotate_scanner_whatever(i, j, ai, aj, bi, bj);
+					goto out;
+				}
+			}
+out:
 		}
 
-		putchar('\n');
-	}
+	/*
+	assert(start->b[1].next->y == 409);
+	assert(start->b[2].next->y == 643);
+	assert(start->b[18].next->y == 528);
 	*/
 
 	/*
-	c.beacon_list = c.scanner_list[0]->b_list;
-	c.beacon_cnt = c.scanner_list[0]->b_cnt;
-	c.beacon_cap
-	*/
+	for (int i = 0; i < 24; i++)
+		printf("%i %i %i\n", start->b[i].x, start->b[i].y, start->b[i].z);
+		*/
+
 	/*
-	find_beacons(&c);
+	assert(start->b[0].next->next->next->y == -675);
+	assert(start->b[17].next->next->next->y == -675);
+	assert(start->next->next->b[0].next->next->next->y == 584);
+	assert(start->next->next->b[17].next->next->next->y == 584);
 	*/
+
 	/*
-	find_scanner_positions(&c);
+	Beacon a1, a2, b1, b2;
+	a1.x = a1.y = a1.z = 4;
+	a2.x = a2.y = a2.z = 10;
+	b1.x = b1.y = b1.z = 6;
+	b2.x = b2.y = b2.z = 12;
+	assert(same_orientation(&a1, &a2, &b1, &b2));
+	b1.x = b1.y = b1.z = 12;
+	b2.x = b2.y = b2.z = 6;
+	assert(same_orientation(&a1, &a2, &b1, &b2) == false);
+	*/
+
+	/*
+	assert(scanners_overlap(start->next->next, start->next->next->next->next, false));
+	assert(scanners_overlap(start->next->next, start->next->next->next->next, true) == false);
 	*/
 
 	return 0;
 }
 
-void
-input_scanners(cntxt* c)
+Scanner *
+input_scanners(void)
 {
-	scanner** list = mem_alloc(32 * sizeof(scanner*));
-	int cnt = 0;
-	int cap = 32;
+	Scanner *start;
+	Scanner **curr = &start;
 
-	char* s = str_input();
+	while (getchar() != EOF) {
+		skip_lines(1);
+		(*curr) = mem_alloc(sizeof(Scanner));
+		(*curr)->b[0] = input_beacons();
 
-	while (s != NULL) {
-		if (cnt >= cap) {
-			cap += 32;
-			list = mem_realloc(list, cap * sizeof(scanner*));
-		}
-
-		scanner* scn = mem_alloc(sizeof(scanner));
-		input_beacons(scn);
-
-		list[cnt] = scn;
-		cnt++;
-
-		s = str_input();
+		curr = &((*curr)->next);
 	}
 
-	c->scanner_list = list;
-	c->scanner_cnt = cnt;
+	return start;
+}
+
+Beacon
+input_beacons(void)
+{
+	Beacon *start;
+	Beacon **curr = &start;
+	char *s;
+
+	while (s = str_input()) {
+		(*curr) = mem_alloc(sizeof(Beacon));
+
+		(*curr)->x = atoi(str_word(0, s));
+		(*curr)->y = atoi(str_word(1, s));
+		(*curr)->z = atoi(str_word(2, s));
+
+		curr = &((*curr)->next);
+	}
+
+	return *start;
+}
+
+Beacon
+dup_beacons(Beacon *start)
+{
+	Beacon *new;
+	Beacon **curr = &new;
+
+	for (Beacon *i = start; i != NULL; i = i->next)	{
+		*curr = mem_alloc(sizeof(Beacon));
+		**curr = *i;
+		curr = &((*curr)->next);
+	}
+
+	return *new;
 }
 
 void
-input_beacons(scanner* scn)
+rotate_beacons(Beacon *start, int x, int y, int z)
 {
-	beacon** list = mem_alloc(32 * sizeof(beacon*));
-	int cnt = 0;
-	int cap = 32;
+	for (Beacon *i = start; i != NULL; i = i->next) {
+		int nx = i->x;
+		int ny = i->y;
+		int nz = i->z;
 
-	char* s = str_input();
-
-	while (s != NULL) {
-		if (cnt >= cap) {
-			cap += 32;
-			list = mem_realloc(list, cap * sizeof(beacon*));
+		for (int n = 0; n < x; n++) {
+			int tmp = nz;
+			nz = -ny;
+			ny =  tmp;
 		}
 
-		beacon* b = mem_alloc(sizeof(beacon));
+		for (int n = 0; n < y; n++) {
+			int tmp = nx;
+			nx = -nz;
+			nz =  tmp;
+		}
 
-		b->x = atoi(str_word(0, s));
-		b->y = atoi(str_word(1, s));
-		b->z = atoi(str_word(2, s));
+		for (int n = 0; n < z; n++) {
+			int tmp = nx;
+			nx = -ny;
+			ny =  tmp;
+		}
 
-		list[cnt] = b;
-		cnt++;
-
-		s = str_input();
+		i->x = nx;
+		i->y = ny;
+		i->z = nz;
 	}
-
-	scn->beacon_list[0] = list;
-	scn->beacon_cnt = cnt;
 }
 
+void
+rotate_scanner(Scanner *a, Scanner *b)
+{
+	Scanner *rot  = a->rotated ? a : b;
+	Scanner *nrot = a->rotated ? b : a;
+	int i;
+
+	for (i = 1; !beacons_overlap(&(rot->b[0]), &(nrot->b[i]), false); i++)
+		;
+
+	nrot->rotated = true;
+	nrot->b[0] = nrot->b[i];
+}
+
+bool
+xor_rotated(Scanner *a, Scanner *b)
+{
+	return !(a->rotated && b->rotated) && (a->rotated || b->rotated);
+}
+
+bool
+beacons_overlap(Beacon *a, Beacon *b, bool dist)
+{
+	int matches = 0;
+
+	for (Beacon *ai = a;	   matches < 66 && ai != NULL; ai = ai->next)
+	for (Beacon *aj = a->next; matches < 66 && aj != NULL; aj = aj->next)
+	for (Beacon *bi = b;	   matches < 66 && bi != NULL; bi = bi->next)
+	for (Beacon *bj = b->next; matches < 66 && bj != NULL; bj = bj->next)
+		matches += dist ? same_distance(ai, aj, bi, bj) : same_orientation(ai, aj, bi, bj);
+
+	return matches >= 66;
+}
+
+bool
+same_distance(Beacon *a1, Beacon *a2, Beacon *b1, Beacon *b2)
+{
+	int ax = abs(a1->x - a2->x);
+	int ay = abs(a1->y - a2->y);
+	int az = abs(a1->z - a2->z);
+
+	int bx = abs(b1->x - b2->x);
+	int by = abs(b1->y - b2->y);
+	int bz = abs(b1->z - b2->z);
+
+	return ax * ay * az == bx * by * bz;
+}
+
+bool
+same_orientation(Beacon *a1, Beacon *a2, Beacon *b1, Beacon *b2)
+{
+	bool x = b1->x - a1->x + a2->x == b2->x;
+	bool y = b1->y - a1->y + a2->y == b2->y;
+	bool z = b1->z - a1->z + a2->z == b2->z;
+
+	return x && y && z;
+}
+
+/*
+RotationData
+compare_scanners()
+{
+
+	
+	
+}
+*/
+
+/*
 void
 gen_rotated_sets(scanner* scn)
 {
@@ -211,6 +328,7 @@ rotate_plane(axis a, axis b)
 gen_rotated_sets(scanner* scn, int index)
 {
 }
+*/
 
 /*
 void
