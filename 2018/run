@@ -1,0 +1,13 @@
+#!/bin/env sh
+
+INPUT="input"
+
+for arg in getopts ":t"; do
+	case "$arg" in
+		t) INPUT="test" ;;
+	esac
+done
+
+PROGRAM=$(eval echo "\$$OPTIND")
+
+eval "lua $PROGRAM.lua < $INPUT"
