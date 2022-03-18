@@ -40,41 +40,36 @@ end
 
 function find_id()
 	local matched = false
+	local id1 = nil
+	local id2 = nil
 
-	for _, l in ipairs(data) do
-		for _, m in ipairs(data) do
-			if compare(l, m) then
-				asdasd, dude = l, m
-				break
-			end
+	for i = 1, #data do
+		for j = i + 1, #data do
+			local count, id = letter_missing(data[i], data[j])
+			if count == #data[i] - 1 then return table.concat(id) end
+		end
+	end
+end
+
+function letter_missing(s1, s2)
+	local iter1 = s1:gmatch('.')
+	local iter2 = s2:gmatch('.')
+	local same_l = {}
+	local count = 0
+
+	for i = 1, #s1 do
+		local c = iter1
+
+		if c == iter2() then
+			count = count + 1
+			same_l[#same_l + 1] = c
 		end
 	end
 
-	amb, lab = asdasd:gmatch('.'), dude:gmatch('.')
-
-	c1 = nil
-	c2 = nil
-	ss = ""
-	for i = 1, #asdasd do
-		c1, c2 = amb(), lab()
-		if c1 == c2 then ss = ss .. c1 end
-	end
-
-	print(ss)
-end
-
-function compare(l, m)
-	amb, lab = l:gmatch('.'), m:gmatch('.')
-	local count = 0
-
-	for i = 1, #l do
-		count = count + (amb() == lab() and 1 or 0)
-	end
-
-	return count == #l - 1
+	return count, same_l
 end
 
 data = utils.input()
 
 io.write("Part 1: ", calc_repeating(), '\n')
-find_id()
+io.write("Part 2: ", find_id(), '\n')
