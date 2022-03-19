@@ -1,5 +1,6 @@
 --- getopt(3)-like functionality for Lua 5.1 and later
 -- This is free and unencumbered software released into the public domain.
+-- Source: https://github.com/skeeto/getopt-lua
 
 --- getopt(argv, optstring [, nonoptions])
 --
