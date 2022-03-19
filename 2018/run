@@ -1,13 +1,18 @@
-#!/bin/env sh
+#!/bin/env lua
 
-INPUT="input"
+local utils = require "utils"
 
-for arg in getopts ":t"; do
-	case "$arg" in
-		t) INPUT="test" ;;
-	esac
-done
+local nonopts = {}
+io.input("input")
 
-PROGRAM=$(eval echo "\$$OPTIND")
+for opt, arg in utils.getopt(arg, "t", nonopts) do
+	if opt == 't' then
+		io.input("test")
+	end
+end
 
-eval "lua $PROGRAM.lua < $INPUT"
+local program = math.tointeger(nonopts[1])
+
+if program == 1 then dofile "01.lua"
+elseif program == 2 then dofile "02.lua"
+end
