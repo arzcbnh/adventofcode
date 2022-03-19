@@ -1,18 +1,19 @@
 #!/bin/env lua
 
-local utils = require "utils"
-
+local getopt = require "getopt"
 local nonopts = {}
+
 io.input("input")
 
-for opt, arg in utils.getopt(arg, "t", nonopts) do
+for opt, arg in getopt(arg, "t", nonopts) do
 	if opt == 't' then
 		io.input("test")
 	end
 end
 
-local program = math.tointeger(nonopts[1])
+local program = tonumber(nonopts[1])
 
 if program == 1 then dofile "01.lua"
 elseif program == 2 then dofile "02.lua"
+else io.write("aoc: invalid program \'", tostring(program), "\'\n")
 end
